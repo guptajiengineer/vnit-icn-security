@@ -1,0 +1,12 @@
+{
+  "iterations": 1,
+  "seed_base": 1000,
+  "publisher_values": [
+    4
+  ],
+  "user_values": [
+    2
+  ],
+  "arrival_window": 40.0,
+  "plots_created": false
+}

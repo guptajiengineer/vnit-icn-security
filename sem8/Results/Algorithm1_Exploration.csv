@@ -1,0 +1,2 @@
+Content,Path,Path_Weight,Connection_Duration,Packet_Loss,Response_Time
+pub1_content_1,Router1,0.5870,12.53,0.043,0.450

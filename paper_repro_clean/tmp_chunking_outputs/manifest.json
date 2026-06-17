@@ -1,0 +1,42 @@
+{
+  "iterations": 1,
+  "seed_base": 1000,
+  "publisher_values": [
+    4
+  ],
+  "user_values": [
+    2
+  ],
+  "user_sweep_fixed_publishers": 4,
+  "arrival_window": 40.0,
+  "chunking_mode": "both",
+  "mode_output_dirs": {
+    "without_chunking": "paper_repro_clean\\tmp_chunking_outputs\\without_chunking",
+    "with_chunking": "paper_repro_clean\\tmp_chunking_outputs\\with_chunking"
+  },
+  "load_normalized_arrivals": false,
+  "arrival_window_reference_users": null,
+  "content_specs": [
+    {
+      "content_id": "a1",
+      "generation_round": -2,
+      "lifespan_rounds": 8,
+      "cache_cost": 6.0,
+      "availability_threshold": 0.22,
+      "lifetime_threshold": 0.0,
+      "popularity": 1.0
+    },
+    {
+      "content_id": "a2",
+      "generation_round": -3,
+      "lifespan_rounds": 10,
+      "cache_cost": 7.5,
+      "availability_threshold": 0.22,
+      "lifetime_threshold": 0.0,
+      "popularity": 0.86
+    }
+  ],
+  "reuse_topology": true,
+  "topology_reuse_span": 20,
+  "plots_created": false
+}

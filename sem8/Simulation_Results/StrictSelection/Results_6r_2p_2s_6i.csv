@@ -1,0 +1,7 @@
+Simulation Time,Subscribers,Total Requests,Explored Paths,Selected Disjoint Paths,Cache Hit Ratio (%),Average Hops per Chunk,Method
+2025-12-28 19:03:39,2,11,10,3,0.0,1.0,StrictSelection-v3
+2025-12-28 19:03:39,2,22,20,7,0.0,1.0,StrictSelection-v3
+2025-12-28 19:03:39,2,33,30,13,0.0,1.0,StrictSelection-v3
+2025-12-28 19:03:39,2,39,39,17,0.0,1.0,StrictSelection-v3
+2025-12-28 19:03:40,2,50,49,25,0.0,1.0,StrictSelection-v3
+2025-12-28 19:03:40,2,61,59,32,0.0,1.0,StrictSelection-v3

@@ -1,0 +1,95 @@
+
+==========================================================================================
+ALGORITHM1 CACHE POLICY COMPARISON REPORT
+Format: Policy, Iteration, Total Requests, Cache Hit Ratio, Latency, Hop Reduction
+==========================================================================================
+
+
+Policy               LRU
+------------------------------------------------------------------------------------------
+Average Cache Hit Ratio                       57.13%
+Std Dev Cache Hit Ratio                       17.65%
+Max Cache Hit Ratio                           69.79%
+Min Cache Hit Ratio                            0.00%
+
+Average Latency (seconds)                0.00000030
+Min Latency                              0.00000026
+Max Latency                              0.00000054
+
+Average Hop Reduction                       -1.5004
+Total Requests                                  800
+
+
+Policy               LFU
+------------------------------------------------------------------------------------------
+Average Cache Hit Ratio                       54.37%
+Std Dev Cache Hit Ratio                       16.72%
+Max Cache Hit Ratio                           71.00%
+Min Cache Hit Ratio                            0.00%
+
+Average Latency (seconds)                0.00000035
+Min Latency                              0.00000030
+Max Latency                              0.00000051
+
+Average Hop Reduction                       -1.5969
+Total Requests                                  800
+
+
+Policy               FIFO
+------------------------------------------------------------------------------------------
+Average Cache Hit Ratio                       47.60%
+Std Dev Cache Hit Ratio                       10.98%
+Max Cache Hit Ratio                           57.53%
+Min Cache Hit Ratio                            0.00%
+
+Average Latency (seconds)                0.00000030
+Min Latency                              0.00000023
+Max Latency                              0.00000063
+
+Average Hop Reduction                       -1.8341
+Total Requests                                  800
+
+
+Policy               MRU
+------------------------------------------------------------------------------------------
+Average Cache Hit Ratio                       63.95%
+Std Dev Cache Hit Ratio                       12.97%
+Max Cache Hit Ratio                           74.12%
+Min Cache Hit Ratio                            0.00%
+
+Average Latency (seconds)                0.00000037
+Min Latency                              0.00000031
+Max Latency                              0.00000057
+
+Average Hop Reduction                       -1.2617
+Total Requests                                  800
+
+
+Policy               FACR
+------------------------------------------------------------------------------------------
+Average Cache Hit Ratio                       56.95%
+Std Dev Cache Hit Ratio                       14.54%
+Max Cache Hit Ratio                           68.29%
+Min Cache Hit Ratio                            0.00%
+
+Average Latency (seconds)                0.00000041
+Min Latency                              0.00000034
+Max Latency                              0.00000072
+
+Average Hop Reduction                       -1.5069
+Total Requests                                  800
+
+
+Policy               RandomForest
+------------------------------------------------------------------------------------------
+Average Cache Hit Ratio                       54.69%
+Std Dev Cache Hit Ratio                        9.08%
+Max Cache Hit Ratio                           63.27%
+Min Cache Hit Ratio                            0.00%
+
+Average Latency (seconds)                0.00000056
+Min Latency                              0.00000046
+Max Latency                              0.00000113
+
+Average Hop Reduction                       -1.5860
+Total Requests                                  800

@@ -1,0 +1,385 @@
+[2026-01-01 18:35:45.571565] Received interest for publisher1_content_44 from Subscriber2
+[2026-01-01 18:35:45.579241] Cache miss: Fetching publisher1_content_44
+[2026-01-01 18:35:45.601820] Cached publisher1_content_44 (ID: 143)
+[2026-01-01 18:35:45.610805] Received interest for publisher1_content_44 from Subscriber2
+[2026-01-01 18:35:45.613020] Loop detected: Dropping interest for publisher1_content_44
+[2026-01-01 18:35:45.617176] Received interest for publisher1_content_44 from Subscriber2
+[2026-01-01 18:35:45.618269] Loop detected: Dropping interest for publisher1_content_44
+[2026-01-01 18:35:45.642836] Received interest for publisher2_content_27 from Subscriber3
+[2026-01-01 18:35:45.645872] Cache miss: Fetching publisher2_content_27
+[2026-01-01 18:35:45.651829] Cached publisher2_content_27 (ID: 176)
+[2026-01-01 18:35:45.657799] Received interest for publisher2_content_27 from Subscriber3
+[2026-01-01 18:35:45.659752] Loop detected: Dropping interest for publisher2_content_27
+[2026-01-01 18:35:45.662748] Received interest for publisher2_content_27 from Subscriber3
+[2026-01-01 18:35:45.663595] Loop detected: Dropping interest for publisher2_content_27
+[2026-01-01 18:35:45.683423] Received interest for publisher1_content_45 from Subscriber1
+[2026-01-01 18:35:45.684693] Cache miss: Fetching publisher1_content_45
+[2026-01-01 18:35:45.694229] Cached publisher1_content_45 (ID: 144)
+[2026-01-01 18:35:45.697686] Received interest for publisher1_content_45 from Subscriber1
+[2026-01-01 18:35:45.698579] Loop detected: Dropping interest for publisher1_content_45
+[2026-01-01 18:35:45.700931] Received interest for publisher1_content_45 from Subscriber1
+[2026-01-01 18:35:45.701594] Loop detected: Dropping interest for publisher1_content_45
+[2026-01-01 18:35:45.725615] Received interest for publisher2_content_12 from Subscriber2
+[2026-01-01 18:35:45.728569] Cache miss: Fetching publisher2_content_12
+[2026-01-01 18:35:45.734092] Cached publisher2_content_12 (ID: 161)
+[2026-01-01 18:35:45.736389] Received interest for publisher2_content_12 from Subscriber2
+[2026-01-01 18:35:45.737906] Loop detected: Dropping interest for publisher2_content_12
+[2026-01-01 18:35:45.744024] Received interest for publisher2_content_12 from Subscriber2
+[2026-01-01 18:35:45.744955] Loop detected: Dropping interest for publisher2_content_12
+[2026-01-01 18:35:45.760019] Received interest for publisher2_content_11 from Subscriber3
+[2026-01-01 18:35:45.761873] Cache miss: Fetching publisher2_content_11
+[2026-01-01 18:35:45.766894] Cached publisher2_content_11 (ID: 160)
+[2026-01-01 18:35:45.770212] Received interest for publisher2_content_11 from Subscriber3
+[2026-01-01 18:35:45.771215] Loop detected: Dropping interest for publisher2_content_11
+[2026-01-01 18:35:45.776020] Received interest for publisher2_content_11 from Subscriber3
+[2026-01-01 18:35:45.777104] Loop detected: Dropping interest for publisher2_content_11
+[2026-01-01 18:35:45.798029] Received interest for publisher1_content_45 from Subscriber1
+[2026-01-01 18:35:45.799621] Cache hit: Serving publisher1_content_45
+[2026-01-01 18:35:45.801512] Received interest for publisher1_content_45 from Subscriber1
+[2026-01-01 18:35:45.802163] Loop detected: Dropping interest for publisher1_content_45
+[2026-01-01 18:35:45.806053] Received interest for publisher1_content_45 from Subscriber1
+[2026-01-01 18:35:45.807082] Loop detected: Dropping interest for publisher1_content_45
+[2026-01-01 18:35:45.827371] Received interest for publisher2_content_48 from Subscriber2
+[2026-01-01 18:35:45.828798] Cache miss: Fetching publisher2_content_48
+[2026-01-01 18:35:45.834077] Cached publisher2_content_48 (ID: 197)
+[2026-01-01 18:35:45.836416] Received interest for publisher2_content_48 from Subscriber2
+[2026-01-01 18:35:45.837886] Loop detected: Dropping interest for publisher2_content_48
+[2026-01-01 18:35:45.840750] Received interest for publisher2_content_48 from Subscriber2
+[2026-01-01 18:35:45.841265] Loop detected: Dropping interest for publisher2_content_48
+[2026-01-01 18:35:45.851345] Received interest for publisher2_content_19 from Subscriber3
+[2026-01-01 18:35:45.854374] Cache miss: Fetching publisher2_content_19
+[2026-01-01 18:35:45.861413] Cached publisher2_content_19 (ID: 168)
+[2026-01-01 18:35:45.863299] Received interest for publisher2_content_19 from Subscriber3
+[2026-01-01 18:35:45.863866] Loop detected: Dropping interest for publisher2_content_19
+[2026-01-01 18:35:45.866635] Received interest for publisher2_content_19 from Subscriber3
+[2026-01-01 18:35:45.867224] Loop detected: Dropping interest for publisher2_content_19
+[2026-01-01 18:35:45.882117] Received interest for publisher1_content_30 from Subscriber1
+[2026-01-01 18:35:45.884135] Cache miss: Fetching publisher1_content_30
+[2026-01-01 18:35:45.892211] Cached publisher1_content_30 (ID: 129)
+[2026-01-01 18:35:45.895007] Received interest for publisher1_content_30 from Subscriber1
+[2026-01-01 18:35:45.895659] Loop detected: Dropping interest for publisher1_content_30
+[2026-01-01 18:35:45.897160] Received interest for publisher1_content_30 from Subscriber1
+[2026-01-01 18:35:45.898115] Loop detected: Dropping interest for publisher1_content_30
+[2026-01-01 18:35:45.921452] Received interest for publisher2_content_13 from Subscriber2
+[2026-01-01 18:35:45.924900] Cache miss: Fetching publisher2_content_13
+[2026-01-01 18:35:45.930158] Cached publisher2_content_13 (ID: 162)
+[2026-01-01 18:35:45.932138] Received interest for publisher2_content_13 from Subscriber2
+[2026-01-01 18:35:45.932669] Loop detected: Dropping interest for publisher2_content_13
+[2026-01-01 18:35:45.934219] Received interest for publisher2_content_13 from Subscriber2
+[2026-01-01 18:35:45.934818] Loop detected: Dropping interest for publisher2_content_13
+[2026-01-01 18:35:45.949675] Received interest for publisher1_content_29 from Subscriber3
+[2026-01-01 18:35:45.951113] Cache miss: Fetching publisher1_content_29
+[2026-01-01 18:35:45.958533] Cached publisher1_content_29 (ID: 128)
+[2026-01-01 18:35:45.960450] Received interest for publisher1_content_29 from Subscriber3
+[2026-01-01 18:35:45.961081] Loop detected: Dropping interest for publisher1_content_29
+[2026-01-01 18:35:45.962753] Received interest for publisher1_content_29 from Subscriber3
+[2026-01-01 18:35:45.963223] Loop detected: Dropping interest for publisher1_content_29
+[2026-01-01 18:35:45.976228] Received interest for publisher2_content_41 from Subscriber1
+[2026-01-01 18:35:45.978485] Cache miss: Fetching publisher2_content_41
+[2026-01-01 18:35:45.983167] Cached publisher2_content_41 (ID: 190)
+[2026-01-01 18:35:45.985044] Received interest for publisher2_content_41 from Subscriber1
+[2026-01-01 18:35:45.985703] Loop detected: Dropping interest for publisher2_content_41
+[2026-01-01 18:35:45.989005] Received interest for publisher2_content_41 from Subscriber1
+[2026-01-01 18:35:45.990027] Loop detected: Dropping interest for publisher2_content_41
+[2026-01-01 18:35:46.015718] Received interest for publisher2_content_36 from Subscriber2
+[2026-01-01 18:35:46.016982] Cache miss: Fetching publisher2_content_36
+[2026-01-01 18:35:46.022862] Cached publisher2_content_36 (ID: 185)
+[2026-01-01 18:35:46.026129] Received interest for publisher2_content_36 from Subscriber2
+[2026-01-01 18:35:46.026958] Loop detected: Dropping interest for publisher2_content_36
+[2026-01-01 18:35:46.028551] Received interest for publisher2_content_36 from Subscriber2
+[2026-01-01 18:35:46.029009] Loop detected: Dropping interest for publisher2_content_36
+[2026-01-01 18:35:46.038712] Received interest for publisher2_content_43 from Subscriber3
+[2026-01-01 18:35:46.040485] Cache miss: Fetching publisher2_content_43
+[2026-01-01 18:35:46.046187] Cached publisher2_content_43 (ID: 192)
+[2026-01-01 18:35:46.048154] Received interest for publisher2_content_43 from Subscriber3
+[2026-01-01 18:35:46.048866] Loop detected: Dropping interest for publisher2_content_43
+[2026-01-01 18:35:46.050408] Received interest for publisher2_content_43 from Subscriber3
+[2026-01-01 18:35:46.050965] Loop detected: Dropping interest for publisher2_content_43
+[2026-01-01 18:35:46.062933] Received interest for publisher2_content_38 from Subscriber1
+[2026-01-01 18:35:46.064451] Cache miss: Fetching publisher2_content_38
+[2026-01-01 18:35:46.068734] Cached publisher2_content_38 (ID: 187)
+[2026-01-01 18:35:46.072301] Received interest for publisher2_content_38 from Subscriber1
+[2026-01-01 18:35:46.073417] Loop detected: Dropping interest for publisher2_content_38
+[2026-01-01 18:35:46.075269] Received interest for publisher2_content_38 from Subscriber1
+[2026-01-01 18:35:46.075803] Loop detected: Dropping interest for publisher2_content_38
+[2026-01-01 18:35:46.090701] Received interest for publisher2_content_7 from Subscriber2
+[2026-01-01 18:35:46.092108] Cache miss: Fetching publisher2_content_7
+[2026-01-01 18:35:46.096515] Cached publisher2_content_7 (ID: 156)
+[2026-01-01 18:35:46.098097] Received interest for publisher2_content_7 from Subscriber2
+[2026-01-01 18:35:46.098647] Loop detected: Dropping interest for publisher2_content_7
+[2026-01-01 18:35:46.100195] Received interest for publisher2_content_7 from Subscriber2
+[2026-01-01 18:35:46.100631] Loop detected: Dropping interest for publisher2_content_7
+[2026-01-01 18:35:46.111126] Received interest for publisher1_content_30 from Subscriber3
+[2026-01-01 18:35:46.112596] Cache hit: Serving publisher1_content_30
+[2026-01-01 18:35:46.114352] Received interest for publisher1_content_30 from Subscriber3
+[2026-01-01 18:35:46.115069] Loop detected: Dropping interest for publisher1_content_30
+[2026-01-01 18:35:46.117315] Received interest for publisher1_content_30 from Subscriber3
+[2026-01-01 18:35:46.117943] Loop detected: Dropping interest for publisher1_content_30
+[2026-01-01 18:35:46.132428] Received interest for publisher1_content_43 from Subscriber1
+[2026-01-01 18:35:46.133852] Cache miss: Fetching publisher1_content_43
+[2026-01-01 18:35:46.144704] Cached publisher1_content_43 (ID: 142)
+[2026-01-01 18:35:46.146798] Received interest for publisher1_content_43 from Subscriber1
+[2026-01-01 18:35:46.147378] Loop detected: Dropping interest for publisher1_content_43
+[2026-01-01 18:35:46.149734] Received interest for publisher1_content_43 from Subscriber1
+[2026-01-01 18:35:46.150465] Loop detected: Dropping interest for publisher1_content_43
+[2026-01-01 18:35:46.164131] Received interest for publisher2_content_13 from Subscriber2
+[2026-01-01 18:35:46.166036] Cache hit: Serving publisher2_content_13
+[2026-01-01 18:35:46.209066] Received interest for publisher2_content_13 from Subscriber2
+[2026-01-01 18:35:46.210663] Loop detected: Dropping interest for publisher2_content_13
+[2026-01-01 18:35:46.215568] Received interest for publisher2_content_13 from Subscriber2
+[2026-01-01 18:35:46.217084] Loop detected: Dropping interest for publisher2_content_13
+[2026-01-01 18:35:46.241298] Received interest for publisher2_content_25 from Subscriber3
+[2026-01-01 18:35:46.243993] Cache miss: Fetching publisher2_content_25
+[2026-01-01 18:35:46.257562] Cached publisher2_content_25 (ID: 174)
+[2026-01-01 18:35:46.260636] Received interest for publisher2_content_25 from Subscriber3
+[2026-01-01 18:35:46.261980] Loop detected: Dropping interest for publisher2_content_25
+[2026-01-01 18:35:46.265343] Received interest for publisher2_content_25 from Subscriber3
+[2026-01-01 18:35:46.266467] Loop detected: Dropping interest for publisher2_content_25
+[2026-01-01 18:35:46.288482] Received interest for publisher2_content_39 from Subscriber1
+[2026-01-01 18:35:46.290883] Cache miss: Fetching publisher2_content_39
+[2026-01-01 18:35:46.302801] Cached publisher2_content_39 (ID: 188)
+[2026-01-01 18:35:46.307530] Received interest for publisher2_content_39 from Subscriber1
+[2026-01-01 18:35:46.308920] Loop detected: Dropping interest for publisher2_content_39
+[2026-01-01 18:35:46.311176] Received interest for publisher2_content_39 from Subscriber1
+[2026-01-01 18:35:46.311632] Loop detected: Dropping interest for publisher2_content_39
+[2026-01-01 18:35:46.326596] Received interest for publisher1_content_2 from Subscriber3
+[2026-01-01 18:35:46.328806] Cache miss: Fetching publisher1_content_2
+[2026-01-01 18:35:46.337173] Cached publisher1_content_2 (ID: 101)
+[2026-01-01 18:35:46.339682] Received interest for publisher1_content_2 from Subscriber3
+[2026-01-01 18:35:46.340977] Loop detected: Dropping interest for publisher1_content_2
+[2026-01-01 18:35:46.342957] Received interest for publisher1_content_2 from Subscriber3
+[2026-01-01 18:35:46.343619] Loop detected: Dropping interest for publisher1_content_2
+[2026-01-01 18:35:46.359533] Received interest for publisher2_content_26 from Subscriber1
+[2026-01-01 18:35:46.361659] Cache miss: Fetching publisher2_content_26
+[2026-01-01 18:35:46.371601] Cached publisher2_content_26 (ID: 175)
+[2026-01-01 18:35:46.374014] Received interest for publisher2_content_26 from Subscriber1
+[2026-01-01 18:35:46.374813] Loop detected: Dropping interest for publisher2_content_26
+[2026-01-01 18:35:46.377085] Received interest for publisher2_content_26 from Subscriber1
+[2026-01-01 18:35:46.378348] Loop detected: Dropping interest for publisher2_content_26
+[2026-01-01 18:35:46.397209] Received interest for publisher2_content_38 from Subscriber2
+[2026-01-01 18:35:46.398652] Cache hit: Serving publisher2_content_38
+[2026-01-01 18:35:46.401747] Received interest for publisher2_content_38 from Subscriber2
+[2026-01-01 18:35:46.402960] Loop detected: Dropping interest for publisher2_content_38
+[2026-01-01 18:35:46.405924] Received interest for publisher2_content_38 from Subscriber2
+[2026-01-01 18:35:46.406570] Loop detected: Dropping interest for publisher2_content_38
+[2026-01-01 18:35:46.417189] Received interest for publisher2_content_13 from Subscriber3
+[2026-01-01 18:35:46.419212] Cache hit: Serving publisher2_content_13
+[2026-01-01 18:35:46.422797] Received interest for publisher2_content_13 from Subscriber3
+[2026-01-01 18:35:46.423366] Loop detected: Dropping interest for publisher2_content_13
+[2026-01-01 18:35:46.424843] Received interest for publisher2_content_13 from Subscriber3
+[2026-01-01 18:35:46.425285] Loop detected: Dropping interest for publisher2_content_13
+[2026-01-01 18:35:46.440144] Received interest for publisher2_content_5 from Subscriber1
+[2026-01-01 18:35:46.441699] Cache miss: Fetching publisher2_content_5
+[2026-01-01 18:35:46.449785] Cached publisher2_content_5 (ID: 154)
+[2026-01-01 18:35:46.451502] Received interest for publisher2_content_5 from Subscriber1
+[2026-01-01 18:35:46.452551] Loop detected: Dropping interest for publisher2_content_5
+[2026-01-01 18:35:46.455326] Received interest for publisher2_content_5 from Subscriber1
+[2026-01-01 18:35:46.456051] Loop detected: Dropping interest for publisher2_content_5
+[2026-01-01 18:35:46.469142] Received interest for publisher1_content_40 from Subscriber2
+[2026-01-01 18:35:46.472219] Cache miss: Fetching publisher1_content_40
+[2026-01-01 18:35:46.479289] Cached publisher1_content_40 (ID: 139)
+[2026-01-01 18:35:46.481275] Received interest for publisher1_content_40 from Subscriber2
+[2026-01-01 18:35:46.482232] Loop detected: Dropping interest for publisher1_content_40
+[2026-01-01 18:35:46.483740] Received interest for publisher1_content_40 from Subscriber2
+[2026-01-01 18:35:46.484159] Loop detected: Dropping interest for publisher1_content_40
+[2026-01-01 18:35:46.495127] Received interest for publisher2_content_20 from Subscriber3
+[2026-01-01 18:35:46.496741] Cache miss: Fetching publisher2_content_20
+[2026-01-01 18:35:46.504886] Cached publisher2_content_20 (ID: 169)
+[2026-01-01 18:35:46.506844] Received interest for publisher2_content_20 from Subscriber3
+[2026-01-01 18:35:46.507674] Loop detected: Dropping interest for publisher2_content_20
+[2026-01-01 18:35:46.509839] Received interest for publisher2_content_20 from Subscriber3
+[2026-01-01 18:35:46.510527] Loop detected: Dropping interest for publisher2_content_20
+[2026-01-01 18:35:46.522280] Received interest for publisher2_content_16 from Subscriber1
+[2026-01-01 18:35:46.523806] Cache miss: Fetching publisher2_content_16
+[2026-01-01 18:35:46.531446] Cached publisher2_content_16 (ID: 165)
+[2026-01-01 18:35:46.533300] Received interest for publisher2_content_16 from Subscriber1
+[2026-01-01 18:35:46.533989] Loop detected: Dropping interest for publisher2_content_16
+[2026-01-01 18:35:46.536442] Received interest for publisher2_content_16 from Subscriber1
+[2026-01-01 18:35:46.537558] Loop detected: Dropping interest for publisher2_content_16
+[2026-01-01 18:35:46.557279] Received interest for publisher1_content_37 from Subscriber2
+[2026-01-01 18:35:46.559406] Cache miss: Fetching publisher1_content_37
+[2026-01-01 18:35:46.567958] Cached publisher1_content_37 (ID: 136)
+[2026-01-01 18:35:46.572359] Received interest for publisher1_content_37 from Subscriber2
+[2026-01-01 18:35:46.573081] Loop detected: Dropping interest for publisher1_content_37
+[2026-01-01 18:35:46.574972] Received interest for publisher1_content_37 from Subscriber2
+[2026-01-01 18:35:46.575595] Loop detected: Dropping interest for publisher1_content_37
+[2026-01-01 18:35:46.590317] Received interest for publisher1_content_39 from Subscriber3
+[2026-01-01 18:35:46.592747] Cache miss: Fetching publisher1_content_39
+[2026-01-01 18:35:46.601039] Cached publisher1_content_39 (ID: 138)
+[2026-01-01 18:35:46.604831] Received interest for publisher1_content_39 from Subscriber3
+[2026-01-01 18:35:46.606381] Loop detected: Dropping interest for publisher1_content_39
+[2026-01-01 18:35:46.608306] Received interest for publisher1_content_39 from Subscriber3
+[2026-01-01 18:35:46.608820] Loop detected: Dropping interest for publisher1_content_39
+[2026-01-01 18:35:46.625760] Received interest for publisher2_content_21 from Subscriber1
+[2026-01-01 18:35:46.627948] Cache miss: Fetching publisher2_content_21
+[2026-01-01 18:35:46.637510] Cached publisher2_content_21 (ID: 170)
+[2026-01-01 18:35:46.641071] Received interest for publisher2_content_21 from Subscriber1
+[2026-01-01 18:35:46.642035] Loop detected: Dropping interest for publisher2_content_21
+[2026-01-01 18:35:46.644744] Received interest for publisher2_content_21 from Subscriber1
+[2026-01-01 18:35:46.646012] Loop detected: Dropping interest for publisher2_content_21
+[2026-01-01 18:35:46.673984] Received interest for publisher1_content_36 from Subscriber2
+[2026-01-01 18:35:46.676119] Cache miss: Fetching publisher1_content_36
+[2026-01-01 18:35:46.688243] Cached publisher1_content_36 (ID: 135)
+[2026-01-01 18:35:46.692407] Received interest for publisher1_content_36 from Subscriber2
+[2026-01-01 18:35:46.693466] Loop detected: Dropping interest for publisher1_content_36
+[2026-01-01 18:35:46.696763] Received interest for publisher1_content_36 from Subscriber2
+[2026-01-01 18:35:46.698117] Loop detected: Dropping interest for publisher1_content_36
+[2026-01-01 18:35:46.716392] Received interest for publisher2_content_24 from Subscriber3
+[2026-01-01 18:35:46.719165] Cache miss: Fetching publisher2_content_24
+[2026-01-01 18:35:46.734725] Cached publisher2_content_24 (ID: 173)
+[2026-01-01 18:35:46.739383] Received interest for publisher2_content_24 from Subscriber3
+[2026-01-01 18:35:46.740448] Loop detected: Dropping interest for publisher2_content_24
+[2026-01-01 18:35:46.743892] Received interest for publisher2_content_24 from Subscriber3
+[2026-01-01 18:35:46.744764] Loop detected: Dropping interest for publisher2_content_24
+[2026-01-01 18:35:46.768333] Received interest for publisher1_content_15 from Subscriber1
+[2026-01-01 18:35:46.772253] Cache miss: Fetching publisher1_content_15
+[2026-01-01 18:35:46.787181] Cached publisher1_content_15 (ID: 114)
+[2026-01-01 18:35:46.792292] Received interest for publisher1_content_15 from Subscriber1
+[2026-01-01 18:35:46.793652] Loop detected: Dropping interest for publisher1_content_15
+[2026-01-01 18:35:46.796877] Received interest for publisher1_content_15 from Subscriber1
+[2026-01-01 18:35:46.798050] Loop detected: Dropping interest for publisher1_content_15
+[2026-01-01 18:35:46.828194] Received interest for publisher1_content_38 from Subscriber2
+[2026-01-01 18:35:46.830929] Cache miss: Fetching publisher1_content_38
+[2026-01-01 18:35:46.841145] Cached publisher1_content_38 (ID: 137)
+[2026-01-01 18:35:46.842863] Received interest for publisher1_content_38 from Subscriber2
+[2026-01-01 18:35:46.843358] Loop detected: Dropping interest for publisher1_content_38
+[2026-01-01 18:35:46.845040] Received interest for publisher1_content_38 from Subscriber2
+[2026-01-01 18:35:46.845451] Loop detected: Dropping interest for publisher1_content_38
+[2026-01-01 18:35:46.855311] Received interest for publisher1_content_45 from Subscriber3
+[2026-01-01 18:35:46.856706] Cache hit: Serving publisher1_content_45
+[2026-01-01 18:35:46.858502] Received interest for publisher1_content_45 from Subscriber3
+[2026-01-01 18:35:46.859079] Loop detected: Dropping interest for publisher1_content_45
+[2026-01-01 18:35:46.860680] Received interest for publisher1_content_45 from Subscriber3
+[2026-01-01 18:35:46.861132] Loop detected: Dropping interest for publisher1_content_45
+[2026-01-01 18:35:46.873290] Received interest for publisher2_content_31 from Subscriber1
+[2026-01-01 18:35:46.874727] Cache miss: Fetching publisher2_content_31
+[2026-01-01 18:35:46.882709] Cached publisher2_content_31 (ID: 180)
+[2026-01-01 18:35:46.885509] Received interest for publisher2_content_31 from Subscriber1
+[2026-01-01 18:35:46.887045] Loop detected: Dropping interest for publisher2_content_31
+[2026-01-01 18:35:46.890376] Received interest for publisher2_content_31 from Subscriber1
+[2026-01-01 18:35:46.890884] Loop detected: Dropping interest for publisher2_content_31
+[2026-01-01 18:35:46.909234] Received interest for publisher2_content_49 from Subscriber2
+[2026-01-01 18:35:46.910704] Cache miss: Fetching publisher2_content_49
+[2026-01-01 18:35:46.921956] Cached publisher2_content_49 (ID: 198)
+[2026-01-01 18:35:46.925449] Received interest for publisher2_content_49 from Subscriber2
+[2026-01-01 18:35:46.926114] Loop detected: Dropping interest for publisher2_content_49
+[2026-01-01 18:35:46.927537] Received interest for publisher2_content_49 from Subscriber2
+[2026-01-01 18:35:46.928003] Loop detected: Dropping interest for publisher2_content_49
+[2026-01-01 18:35:46.941905] Received interest for publisher1_content_37 from Subscriber3
+[2026-01-01 18:35:46.943967] Cache hit: Serving publisher1_content_37
+[2026-01-01 18:35:46.947575] Received interest for publisher1_content_37 from Subscriber3
+[2026-01-01 18:35:46.948721] Loop detected: Dropping interest for publisher1_content_37
+[2026-01-01 18:35:46.952156] Received interest for publisher1_content_37 from Subscriber3
+[2026-01-01 18:35:46.953473] Loop detected: Dropping interest for publisher1_content_37
+[2026-01-01 18:35:46.968996] Received interest for publisher2_content_50 from Subscriber1
+[2026-01-01 18:35:46.971328] Cache miss: Fetching publisher2_content_50
+[2026-01-01 18:35:46.979107] Cached publisher2_content_50 (ID: 199)
+[2026-01-01 18:35:46.981054] Received interest for publisher2_content_50 from Subscriber1
+[2026-01-01 18:35:46.981647] Loop detected: Dropping interest for publisher2_content_50
+[2026-01-01 18:35:46.983151] Received interest for publisher2_content_50 from Subscriber1
+[2026-01-01 18:35:46.983642] Loop detected: Dropping interest for publisher2_content_50
+[2026-01-01 18:35:46.997000] Received interest for publisher2_content_44 from Subscriber2
+[2026-01-01 18:35:46.998097] Cache miss: Fetching publisher2_content_44
+[2026-01-01 18:35:47.008107] Cached publisher2_content_44 (ID: 193)
+[2026-01-01 18:35:47.009972] Received interest for publisher2_content_44 from Subscriber2
+[2026-01-01 18:35:47.010519] Loop detected: Dropping interest for publisher2_content_44
+[2026-01-01 18:35:47.011884] Received interest for publisher2_content_44 from Subscriber2
+[2026-01-01 18:35:47.012280] Loop detected: Dropping interest for publisher2_content_44
+[2026-01-01 18:35:47.020225] Received interest for publisher2_content_25 from Subscriber3
+[2026-01-01 18:35:47.021816] Cache miss: Fetching publisher2_content_25
+[2026-01-01 18:35:47.030671] Cached publisher2_content_25 (ID: 174)
+[2026-01-01 18:35:47.032679] Received interest for publisher2_content_25 from Subscriber3
+[2026-01-01 18:35:47.033314] Loop detected: Dropping interest for publisher2_content_25
+[2026-01-01 18:35:47.035280] Received interest for publisher2_content_25 from Subscriber3
+[2026-01-01 18:35:47.036543] Loop detected: Dropping interest for publisher2_content_25
+[2026-01-01 18:35:47.048837] Received interest for publisher1_content_11 from Subscriber1
+[2026-01-01 18:35:47.050286] Cache miss: Fetching publisher1_content_11
+[2026-01-01 18:35:47.058854] Cached publisher1_content_11 (ID: 110)
+[2026-01-01 18:35:47.060506] Received interest for publisher1_content_11 from Subscriber1
+[2026-01-01 18:35:47.061001] Loop detected: Dropping interest for publisher1_content_11
+[2026-01-01 18:35:47.062378] Received interest for publisher1_content_11 from Subscriber1
+[2026-01-01 18:35:47.062812] Loop detected: Dropping interest for publisher1_content_11
+[2026-01-01 18:35:47.075129] Received interest for publisher2_content_35 from Subscriber3
+[2026-01-01 18:35:47.076294] Cache miss: Fetching publisher2_content_35
+[2026-01-01 18:35:47.083032] Cached publisher2_content_35 (ID: 184)
+[2026-01-01 18:35:47.085183] Received interest for publisher2_content_35 from Subscriber3
+[2026-01-01 18:35:47.085790] Loop detected: Dropping interest for publisher2_content_35
+[2026-01-01 18:35:47.087330] Received interest for publisher2_content_35 from Subscriber3
+[2026-01-01 18:35:47.087769] Loop detected: Dropping interest for publisher2_content_35
+[2026-01-01 18:35:47.099986] Received interest for publisher1_content_38 from Subscriber1
+[2026-01-01 18:35:47.102624] Cache miss: Fetching publisher1_content_38
+[2026-01-01 18:35:47.112753] Cached publisher1_content_38 (ID: 137)
+[2026-01-01 18:35:47.114445] Received interest for publisher1_content_38 from Subscriber1
+[2026-01-01 18:35:47.115145] Loop detected: Dropping interest for publisher1_content_38
+[2026-01-01 18:35:47.116740] Received interest for publisher1_content_38 from Subscriber1
+[2026-01-01 18:35:47.117220] Loop detected: Dropping interest for publisher1_content_38
+[2026-01-01 18:35:47.135279] Received interest for publisher1_content_18 from Subscriber2
+[2026-01-01 18:35:47.137032] Cache miss: Fetching publisher1_content_18
+[2026-01-01 18:35:47.144077] Cached publisher1_content_18 (ID: 117)
+[2026-01-01 18:35:47.146238] Received interest for publisher1_content_18 from Subscriber2
+[2026-01-01 18:35:47.146968] Loop detected: Dropping interest for publisher1_content_18
+[2026-01-01 18:35:47.148623] Received interest for publisher1_content_18 from Subscriber2
+[2026-01-01 18:35:47.149247] Loop detected: Dropping interest for publisher1_content_18
+[2026-01-01 18:35:47.165170] Received interest for publisher2_content_29 from Subscriber1
+[2026-01-01 18:35:47.166653] Cache miss: Fetching publisher2_content_29
+[2026-01-01 18:35:47.173675] Cached publisher2_content_29 (ID: 178)
+[2026-01-01 18:35:47.175307] Received interest for publisher2_content_29 from Subscriber1
+[2026-01-01 18:35:47.176027] Loop detected: Dropping interest for publisher2_content_29
+[2026-01-01 18:35:47.178436] Received interest for publisher2_content_29 from Subscriber1
+[2026-01-01 18:35:47.179197] Loop detected: Dropping interest for publisher2_content_29
+[2026-01-01 18:35:47.195950] Received interest for publisher1_content_25 from Subscriber2
+[2026-01-01 18:35:47.197189] Cache miss: Fetching publisher1_content_25
+[2026-01-01 18:35:47.203855] Cached publisher1_content_25 (ID: 124)
+[2026-01-01 18:35:47.205539] Received interest for publisher1_content_25 from Subscriber2
+[2026-01-01 18:35:47.206342] Loop detected: Dropping interest for publisher1_content_25
+[2026-01-01 18:35:47.208346] Received interest for publisher1_content_25 from Subscriber2
+[2026-01-01 18:35:47.208977] Loop detected: Dropping interest for publisher1_content_25
+[2026-01-01 18:35:47.220178] Received interest for publisher2_content_50 from Subscriber3
+[2026-01-01 18:35:47.221685] Cache miss: Fetching publisher2_content_50
+[2026-01-01 18:35:47.229522] Cached publisher2_content_50 (ID: 199)
+[2026-01-01 18:35:47.231263] Received interest for publisher2_content_50 from Subscriber3
+[2026-01-01 18:35:47.232001] Loop detected: Dropping interest for publisher2_content_50
+[2026-01-01 18:35:47.233562] Received interest for publisher2_content_50 from Subscriber3
+[2026-01-01 18:35:47.234024] Loop detected: Dropping interest for publisher2_content_50
+[2026-01-01 18:35:47.247020] Received interest for publisher1_content_39 from Subscriber1
+[2026-01-01 18:35:47.248665] Cache miss: Fetching publisher1_content_39
+[2026-01-01 18:35:47.301002] Cached publisher1_content_39 (ID: 138)
+[2026-01-01 18:35:47.302859] Received interest for publisher1_content_39 from Subscriber1
+[2026-01-01 18:35:47.303431] Loop detected: Dropping interest for publisher1_content_39
+[2026-01-01 18:35:47.305392] Received interest for publisher1_content_39 from Subscriber1
+[2026-01-01 18:35:47.306033] Loop detected: Dropping interest for publisher1_content_39
+[2026-01-01 18:35:47.324464] Received interest for publisher2_content_38 from Subscriber2
+[2026-01-01 18:35:47.327255] Cache miss: Fetching publisher2_content_38
+[2026-01-01 18:35:47.336548] Cached publisher2_content_38 (ID: 187)
+[2026-01-01 18:35:47.338348] Received interest for publisher2_content_38 from Subscriber2
+[2026-01-01 18:35:47.339181] Loop detected: Dropping interest for publisher2_content_38
+[2026-01-01 18:35:47.341129] Received interest for publisher2_content_38 from Subscriber2
+[2026-01-01 18:35:47.341793] Loop detected: Dropping interest for publisher2_content_38
+[2026-01-01 18:35:47.353892] Received interest for publisher1_content_4 from Subscriber3
+[2026-01-01 18:35:47.355817] Cache miss: Fetching publisher1_content_4
+[2026-01-01 18:35:47.363913] Cached publisher1_content_4 (ID: 103)
+[2026-01-01 18:35:47.366000] Received interest for publisher1_content_4 from Subscriber3
+[2026-01-01 18:35:47.366620] Loop detected: Dropping interest for publisher1_content_4
+[2026-01-01 18:35:47.368052] Received interest for publisher1_content_4 from Subscriber3
+[2026-01-01 18:35:47.368499] Loop detected: Dropping interest for publisher1_content_4
+[2026-01-01 18:35:47.378590] Received interest for publisher1_content_35 from Subscriber1
+[2026-01-01 18:35:47.380662] Cache miss: Fetching publisher1_content_35
+[2026-01-01 18:35:47.387696] Cached publisher1_content_35 (ID: 134)
+[2026-01-01 18:35:47.389891] Received interest for publisher1_content_35 from Subscriber1
+[2026-01-01 18:35:47.390478] Loop detected: Dropping interest for publisher1_content_35
+[2026-01-01 18:35:47.392303] Received interest for publisher1_content_35 from Subscriber1
+[2026-01-01 18:35:47.392956] Loop detected: Dropping interest for publisher1_content_35
+[2026-01-01 18:35:47.409716] Received interest for publisher2_content_40 from Subscriber2
+[2026-01-01 18:35:47.412655] Cache miss: Fetching publisher2_content_40
+[2026-01-01 18:35:47.425900] Cached publisher2_content_40 (ID: 189)
+[2026-01-01 18:35:47.427928] Received interest for publisher2_content_40 from Subscriber2
+[2026-01-01 18:35:47.428605] Loop detected: Dropping interest for publisher2_content_40
+[2026-01-01 18:35:47.430393] Received interest for publisher2_content_40 from Subscriber2
+[2026-01-01 18:35:47.430955] Loop detected: Dropping interest for publisher2_content_40
+[2026-01-01 18:35:47.441833] Received interest for publisher1_content_14 from Subscriber3
+[2026-01-01 18:35:47.443420] Cache miss: Fetching publisher1_content_14
+[2026-01-01 18:35:47.450232] Cached publisher1_content_14 (ID: 113)
+[2026-01-01 18:35:47.452067] Received interest for publisher1_content_14 from Subscriber3
+[2026-01-01 18:35:47.452600] Loop detected: Dropping interest for publisher1_content_14
+[2026-01-01 18:35:47.454511] Received interest for publisher1_content_14 from Subscriber3
+[2026-01-01 18:35:47.455384] Loop detected: Dropping interest for publisher1_content_14

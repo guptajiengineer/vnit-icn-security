@@ -1,0 +1,32 @@
+{
+  "iterations": 1,
+  "seed_base": 100,
+  "publisher_values": [
+    4
+  ],
+  "user_values": [
+    2
+  ],
+  "arrival_window": 40.0,
+  "content_specs": [
+    {
+      "content_id": "a1",
+      "generation_round": -2,
+      "lifespan_rounds": 8,
+      "cache_cost": 6.0,
+      "availability_threshold": 0.22,
+      "lifetime_threshold": 0.0,
+      "popularity": 1.0
+    },
+    {
+      "content_id": "a2",
+      "generation_round": -3,
+      "lifespan_rounds": 10,
+      "cache_cost": 7.5,
+      "availability_threshold": 0.22,
+      "lifetime_threshold": 0.0,
+      "popularity": 0.86
+    }
+  ],
+  "plots_created": false
+}
