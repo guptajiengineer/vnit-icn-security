@@ -6,6 +6,9 @@ from models import ContentSpec
 from network import build_base_topology
 from plotting import plot_iteration_profiles, plot_summary_curves, plot_topology
 from simulator import (
+    AUTH_MODE_BOTH,
+    AUTH_MODE_WITH,
+    AUTH_MODE_WITHOUT,
     CHUNKING_MODE_BOTH,
     CHUNKING_MODE_WITH,
     CHUNKING_MODE_WITHOUT,
@@ -56,7 +59,7 @@ def plot_network_topology(
 
     base = build_base_topology(seed, edge_node_count=edge_node_count)
     active_publishers = base.publisher_candidates[:num_publishers]
-    ranked_edge_nodes = rank_user_nodes(
+    ranked_edge_nodes = get_user_nodes(
         base,
         active_publishers,
         max_candidates=max(1, edge_node_count),
@@ -178,6 +181,24 @@ def build_argument_parser() -> argparse.ArgumentParser:
         default=CHUNKING_MODE_WITH,
         help="Fetch mode: single best path, chunked across all selected paths, or run both and save separate result bundles.",
     )
+    # -----------------------------------------------------------------------
+    # Obj2: --auth-mode argument — mirrors --chunking-mode exactly.
+    # without : run without auth (baseline, same as final_code behaviour).
+    # with    : run with full auth layer (hash + encrypt + Merkle verify).
+    # both    : run both and save separate result bundles for overhead comparison.
+    # -----------------------------------------------------------------------
+    parser.add_argument(
+        "--auth-mode",
+        type=str,
+        choices=(AUTH_MODE_WITHOUT, AUTH_MODE_WITH, AUTH_MODE_BOTH),
+        default=AUTH_MODE_WITHOUT,
+        help=(
+            "Authentication mode: "
+            "'without' = no auth (baseline); "
+            "'with' = full cryptographic auth (hash+encrypt+Merkle); "
+            "'both' = run both and save separate result bundles for overhead comparison."
+        ),
+    )
     parser.add_argument(
         "--load-normalized-arrivals",
         action="store_true",
@@ -227,6 +248,7 @@ def main() :
         content_specs=content_specs,
         content_replication_k=args.content_replication_k,
         chunking_mode=args.chunking_mode,
+        auth_mode=args.auth_mode,
         load_normalized_arrivals=args.load_normalized_arrivals,
         arrival_window_reference_users=args.arrival_window_reference_users,
         edge_node_count=args.edge_node_count,
@@ -242,29 +264,63 @@ def main() :
         )
 
     output_dir: Path = args.output_dir
+
+    # -----------------------------------------------------------------------
+    # Obj2: handle auth-mode BOTH output splitting — mirrors chunking_mode BOTH.
+    # -----------------------------------------------------------------------
+    auth_mode_labels = {
+        AUTH_MODE_WITHOUT: ["without_auth"],
+        AUTH_MODE_WITH:    ["with_auth"],
+        AUTH_MODE_BOTH:    ["without_auth", "with_auth"],
+    }
+    auth_labels_for_mode = auth_mode_labels.get(args.auth_mode, ["without_auth"])
+
     if args.chunking_mode == CHUNKING_MODE_BOTH:
         write_csv(output_dir / "raw_results.csv", raw_records)
         write_csv(
             output_dir / "summary_by_publishers_and_users.csv",
             summarize_records(
                 raw_records,
-                key_fields=("chunking_mode", "num_publishers", "num_users", "lmm"),
+                key_fields=("chunking_mode", "auth_mode", "num_publishers", "num_users", "lmm"),
             ),
         )
         mode_output_dirs = {}
         for chunking_label in ("without_chunking", "with_chunking"):
+            for a_label in auth_labels_for_mode:
+                mode_records = [
+                    row
+                    for row in raw_records
+                    if str(row["chunking_mode"]) == chunking_label
+                    and str(row["auth_mode"]) == a_label
+                ]
+                mode_dir = output_dir / chunking_label / a_label
+                write_mode_outputs(
+                    output_dir=mode_dir,
+                    raw_records=mode_records,
+                    fixed_user_sweep_publishers=fixed_user_sweep_publishers,
+                )
+                mode_output_dirs[f"{chunking_label}/{a_label}"] = str(mode_dir)
+    elif args.auth_mode == AUTH_MODE_BOTH:
+        write_csv(output_dir / "raw_results.csv", raw_records)
+        write_csv(
+            output_dir / "summary_by_publishers_and_users.csv",
+            summarize_records(
+                raw_records,
+                key_fields=("auth_mode", "num_publishers", "num_users", "lmm"),
+            ),
+        )
+        mode_output_dirs = {}
+        for a_label in auth_labels_for_mode:
             mode_records = [
-                row
-                for row in raw_records
-                if str(row["chunking_mode"]) == chunking_label
+                row for row in raw_records if str(row["auth_mode"]) == a_label
             ]
-            mode_dir = output_dir / chunking_label
+            mode_dir = output_dir / a_label
             write_mode_outputs(
                 output_dir=mode_dir,
                 raw_records=mode_records,
                 fixed_user_sweep_publishers=fixed_user_sweep_publishers,
             )
-            mode_output_dirs[chunking_label] = str(mode_dir)
+            mode_output_dirs[a_label] = str(mode_dir)
     else:
         write_mode_outputs(
             output_dir=output_dir,
@@ -283,6 +339,7 @@ def main() :
         "content_replication_k": args.content_replication_k,
         "edge_node_count": args.edge_node_count,
         "chunking_mode": args.chunking_mode,
+        "auth_mode": args.auth_mode,
         "mode_output_dirs": mode_output_dirs,
         "load_normalized_arrivals": args.load_normalized_arrivals,
         "arrival_window_reference_users": args.arrival_window_reference_users,
@@ -305,14 +362,14 @@ def main() :
             edge_node_count=args.edge_node_count,
         )
 
-    if args.chunking_mode == CHUNKING_MODE_BOTH:
+    if args.chunking_mode == CHUNKING_MODE_BOTH or args.auth_mode == AUTH_MODE_BOTH:
         print(f"Saved combined and per-mode results to {output_dir}")
     else:
         print(f"Saved raw and summary results to {output_dir}")
     if args.chunking_mode == CHUNKING_MODE_BOTH:
-        print("Plots were written inside the without_chunking/ and with_chunking/ result subfolders.")
-    else:
-        print("Plots were written to summary_curves.png and iteration_profiles.png.")
+        print("Chunking plots written inside the without_chunking/ and with_chunking/ result subfolders.")
+    if args.auth_mode == AUTH_MODE_BOTH:
+        print("Auth plots written inside the without_auth/ and with_auth/ result subfolders.")
     if args.plot_topology and topology_file_name is not None:
         print(f"Topology snapshot was written to {topology_file_name}.")
 
