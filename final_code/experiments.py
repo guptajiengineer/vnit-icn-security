@@ -5,12 +5,14 @@ import json
 from pathlib import Path
 from statistics import fmean, pstdev
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
 import config
-from models import BaseTopology, ContentSpec
+from models import BaseTopology, ChunkRecord, ContentSpec
 from network import build_base_topology
 from network import expand_user_edge_nodes, get_user_nodes
-from content import assign_content_publishers
-from network_scenario import (build_exploration_snapshot,simulate_lmm1, simulate_lmm2,)
+from content import assign_content_publishers, publish_content
+from chain import SimulatedLedger
+from network_scenario import (build_exploration_snapshot, simulate_lmm1, simulate_lmm2,)
 
 
 def effective_arrival_window(
@@ -35,6 +37,7 @@ def  evaluate_topology_scenarios(
     iteration_index: int,
     content_replication_k: int = 5,
     chunking_mode: str = config.CHUNKING_MODE_WITHOUT,
+    auth_mode: str = config.AUTH_MODE_WITHOUT,
     load_normalized_arrivals: bool = False,
     arrival_window_reference_users: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
@@ -78,59 +81,105 @@ def  evaluate_topology_scenarios(
             )
             for chunking_enabled in config.enabled_chunking_modes(chunking_mode):
                 chunking_label = config.chunking_label(chunking_enabled)
-                print(
-                    f"Iteration - {iteration_index + 1}; Np={num_publishers}; "
-                    f"Nu={num_users}"
-                )
-                lmm1 = simulate_lmm1(
-                    base,
-                    active_publishers,
-                    access_node_ids,
-                    num_users,
-                    content_specs=content_specs,
-                    content_publishers=content_publishers,
-                    chunking_enabled=chunking_enabled,
-                    arrival_window=effective_window,
-                    exploration_window=arrival_window,
-                    exploration_snapshot=exploration_snapshot,
-                )
-                lmm2 = simulate_lmm2(
-                    base,
-                    active_publishers,
-                    access_node_ids,
-                    num_users,
-                    content_specs=content_specs,
-                    content_publishers=content_publishers,
-                    chunking_enabled=chunking_enabled,
-                    arrival_window=effective_window,
-                    exploration_window=arrival_window,
-                    exploration_snapshot=exploration_snapshot,
-                )
 
-                records.append(
-                    {
-                        "iteration": iteration_index + 1,
-                        "seed": topology_seed,
-                        "num_publishers": num_publishers,
-                        "num_users": num_users,
-                        "arrival_window_used": effective_window,
-                        "chunking_mode": chunking_label,
-                        "lmm": "LMM-1",
-                        **lmm1,
-                    }
-                )
-                records.append(
-                    {
-                        "iteration": iteration_index + 1,
-                        "seed": topology_seed,
-                        "num_publishers": num_publishers,
-                        "num_users": num_users,
-                        "arrival_window_used": effective_window,
-                        "chunking_mode": chunking_label,
-                        "lmm": "LMM-2",
-                        **lmm2,
-                    }
-                )
+                # -----------------------------------------------------------
+                # Obj2: auth-mode inner loop — mirrors chunking_mode pattern.
+                # For each (num_publishers, num_users, chunking_enabled)
+                # combination, iterate over enabled auth modes.
+                # -----------------------------------------------------------
+                for auth_enabled in config.enabled_auth_modes(auth_mode):
+                    a_label = config.auth_label(auth_enabled)
+                    print(
+                        f"Iteration - {iteration_index + 1}; Np={num_publishers}; "
+                        f"Nu={num_users}; chunking={chunking_label}; auth={a_label}"
+                    )
+
+                    # --------------------------------------------------------
+                    # Obj2: if auth is enabled, run publish_content() for each
+                    # content object to generate chunk records and register
+                    # Merkle roots on the (simulated) ledger.
+                    # chunk_count = num_users (upper bound on path count,
+                    # matching the max paths that can be selected).
+                    # --------------------------------------------------------
+                    ledger = None
+                    chunk_records_map: Dict[str, List[ChunkRecord]] = {}
+
+                    if auth_enabled:
+                        ledger = SimulatedLedger()
+                        # Use num_users as the chunk_count proxy — it's the
+                        # maximum number of paths that can be simultaneously
+                        # selected (one per user), matching the runtime logic
+                        # in NetworkScenario.on_user_request().
+                        chunk_count_for_publish = max(1, num_users)
+                        for content_spec in content_specs:
+                            producer_id = (
+                                active_publishers[0] if active_publishers else "producer_0"
+                            )
+                            _manifest, chunk_records = publish_content(
+                                content_spec=content_spec,
+                                chunk_count=chunk_count_for_publish,
+                                ledger=ledger,
+                                producer_id=producer_id,
+                            )
+                            chunk_records_map[content_spec.content_id] = chunk_records
+
+                    lmm1 = simulate_lmm1(
+                        base,
+                        active_publishers,
+                        access_node_ids,
+                        num_users,
+                        content_specs=content_specs,
+                        content_publishers=content_publishers,
+                        chunking_enabled=chunking_enabled,
+                        arrival_window=effective_window,
+                        exploration_window=arrival_window,
+                        exploration_snapshot=exploration_snapshot,
+                        auth_enabled=auth_enabled,
+                        ledger=ledger,
+                        chunk_records_map=chunk_records_map,
+                    )
+                    lmm2 = simulate_lmm2(
+                        base,
+                        active_publishers,
+                        access_node_ids,
+                        num_users,
+                        content_specs=content_specs,
+                        content_publishers=content_publishers,
+                        chunking_enabled=chunking_enabled,
+                        arrival_window=effective_window,
+                        exploration_window=arrival_window,
+                        exploration_snapshot=exploration_snapshot,
+                        auth_enabled=auth_enabled,
+                        ledger=ledger,
+                        chunk_records_map=chunk_records_map,
+                    )
+
+                    records.append(
+                        {
+                            "iteration": iteration_index + 1,
+                            "seed": topology_seed,
+                            "num_publishers": num_publishers,
+                            "num_users": num_users,
+                            "arrival_window_used": effective_window,
+                            "chunking_mode": chunking_label,
+                            "auth_mode": a_label,
+                            "lmm": "LMM-1",
+                            **lmm1,
+                        }
+                    )
+                    records.append(
+                        {
+                            "iteration": iteration_index + 1,
+                            "seed": topology_seed,
+                            "num_publishers": num_publishers,
+                            "num_users": num_users,
+                            "arrival_window_used": effective_window,
+                            "chunking_mode": chunking_label,
+                            "auth_mode": a_label,
+                            "lmm": "LMM-2",
+                            **lmm2,
+                        }
+                    )
 
     return records
 
@@ -144,6 +193,7 @@ def run_full_experiment(
     content_specs: Sequence[ContentSpec],
     content_replication_k: int = 2,
     chunking_mode: str = config.CHUNKING_MODE_WITH,
+    auth_mode: str = config.AUTH_MODE_WITHOUT,
     load_normalized_arrivals: bool = False,
     arrival_window_reference_users: Optional[int] = None,
     edge_node_count: Optional[int] = None,
@@ -166,6 +216,7 @@ def run_full_experiment(
                 iteration_index=iteration,
                 content_replication_k=content_replication_k,
                 chunking_mode=chunking_mode,
+                auth_mode=auth_mode,
                 load_normalized_arrivals=load_normalized_arrivals,
                 arrival_window_reference_users=arrival_window_reference_users,
             )

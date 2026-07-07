@@ -3,14 +3,16 @@ from __future__ import annotations
 import heapq
 import itertools
 from statistics import fmean
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING
 
 import config
-from models import (BaseTopology, ContentSpec,PathRecord, DataMessage, ExplorationSnapshot, InterestMessage, RequestState,)
+import crypto_auth
+from models import (BaseTopology, ChunkRecord, ContentSpec, PathRecord, DataMessage,
+                    ExplorationSnapshot, InterestMessage, RequestState,)
 from content import build_request_cycle
 from learning import apply_learning_scores, learning_key
 from metrics import (empty_summary, make_user_record, summarize_rounds, summarize_user_metrics,)
-from paths import (bfs_hop_distances, path_records_from_raw_paths, path_success, prefix_path,select_multipaths,)
+from paths import (bfs_hop_distances, path_records_from_raw_paths, path_success, prefix_path, select_multipaths,)
 from resources import (
     has_cached_content,
     recover_topology_after_round,
@@ -19,6 +21,9 @@ from resources import (
 )
 from state import (clone_base_topology, clone_discovered_paths, clone_path_table, clone_provider_hops,)
 from network import choose_cache_node, expand_user_edge_nodes
+
+if TYPE_CHECKING:
+    from chain import Ledger
 
 
 def state_key(edge_id: str, content_id: str) -> Tuple[str, str]:
@@ -87,6 +92,14 @@ class NetworkScenario:
         arrival_window: float,
         exploration_window: Optional[float] = None,
         exploration_snapshot: Optional[ExplorationSnapshot] = None,
+        # -------------------------------------------------------------------
+        # Obj2 additions — auth layer parameters.
+        # All are Optional/False-default so existing call sites that don't
+        # pass them continue to work without any change.
+        # -------------------------------------------------------------------
+        auth_enabled: bool = False,
+        ledger: Optional["Ledger"] = None,
+        chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
     ) :
         self.base = clone_base_topology(base)
         self.active_publishers = list(active_publishers)
@@ -128,6 +141,15 @@ class NetworkScenario:
         self.measurement_cache_events: List[Tuple[str, str]] = []
         self.request_counter = itertools.count()
         self.content_request_counter = 0
+
+        # -------------------------------------------------------------------
+        # Obj2: store auth layer state on the scenario instance.
+        # -------------------------------------------------------------------
+        self.auth_enabled: bool = auth_enabled
+        self.ledger: Optional["Ledger"] = ledger
+        # chunk_records_map: content_id -> List[ChunkRecord] (indexed by chunk_id)
+        self.chunk_records_map: Dict[str, List[ChunkRecord]] = chunk_records_map or {}
+
         if exploration_snapshot is None:
             self.provider_hops = {
                 provider_id: bfs_hop_distances(self.base.adjacency, provider_id)
@@ -557,6 +579,55 @@ class NetworkScenario:
         )
         self.refresh_path_table(request.edge_id, request.content_id)
 
+    # ------------------------------------------------------------------
+    # Obj2 helper: retrieve Merkle proof for a chunk from the ledger tree.
+    # ------------------------------------------------------------------
+    def _get_merkle_proof_for_chunk(
+        self, content_id: str, chunk_id: int
+    ) -> Optional[List[str]]:
+        """
+        Return the Merkle sibling-path proof for *chunk_id* within *content_id*.
+
+        The Merkle tree levels are stored on the ledger object under
+        ``_merkle_trees`` by ``publish_content()`` in content.py.  If auth is
+        not enabled or the tree is missing, returns None.
+        """
+        if self.ledger is None:
+            return None
+        merkle_trees = getattr(self.ledger, "_merkle_trees", {})
+        tree_levels = merkle_trees.get(content_id)
+        if tree_levels is None:
+            return None
+        return crypto_auth.get_merkle_proof(tree_levels, chunk_id)
+
+    # ------------------------------------------------------------------
+    # Obj2 helper: verify a Merkle proof against the ledger root.
+    # Returns True if valid OR if auth is disabled / root not found.
+    # Returns False only when auth IS enabled AND proof verification fails.
+    # ------------------------------------------------------------------
+    def _verify_chunk_proof(
+        self, content_id: str, chunk_hash: Optional[str], proof: Optional[list]
+    ) -> bool:
+        """
+        Verify the Merkle proof for a chunk.
+
+        Design: if auth is disabled, or no root is registered (e.g. during
+        exploration phase), always return True — no disruption to normal flow.
+        Only return False when auth IS on AND the proof is present AND it fails.
+        """
+        if not self.auth_enabled or self.ledger is None:
+            return True
+        if not chunk_hash or not proof:
+            # Auth is on but message carries no proof — treat as unverifiable;
+            # allow through to avoid breaking non-auth messages (e.g. explore mode).
+            return True
+        try:
+            root = self.ledger.get_content_root(content_id)
+        except KeyError:
+            # Root not registered yet (e.g. content not published via publish_content).
+            return True
+        return crypto_auth.verify_merkle_proof(chunk_hash, proof, root)
+
     def on_node_interest(
         self,
         node_id: str,
@@ -643,6 +714,21 @@ class NetworkScenario:
                     )
                 ),
             )
+
+            # -------------------------------------------------------------------
+            # Obj2: attach chunk_hash and merkle_proof to outgoing DataMessage.
+            # Surgical addition — only runs when auth_enabled is True.
+            # Does NOT modify any existing DataMessage fields.
+            # -------------------------------------------------------------------
+            if self.auth_enabled:
+                records = self.chunk_records_map.get(msg.content_id, [])
+                if msg.chunk_id < len(records):
+                    record = records[msg.chunk_id]
+                    data.chunk_hash = record.chunk_hash
+                    data.merkle_proof = self._get_merkle_proof_for_chunk(
+                        msg.content_id, msg.chunk_id
+                    )
+
             upstream_id = returned_path[-2]
             event_loop.schedule(
                 self.hop_delay(upstream_id, data_phase=True),
@@ -720,6 +806,22 @@ class NetworkScenario:
             return
 
         if self.lmm == "LMM-2" and msg.cache_node_id == node_id:
+            # -------------------------------------------------------------------
+            # Obj2: verify Merkle proof BEFORE caching (cache-poisoning defence).
+            # If auth is enabled and proof is invalid, DROP the data message —
+            # do not cache, log the rejection, and return.
+            # If auth is disabled or no root registered, proceed normally.
+            # -------------------------------------------------------------------
+            if not self._verify_chunk_proof(msg.content_id, msg.chunk_hash, msg.merkle_proof):
+                print(
+                    f"[AUTH] Cache-store REJECTED: invalid Merkle proof "
+                    f"for content={msg.content_id!r} chunk={msg.chunk_id} "
+                    f"at cache-node={node_id!r}. Message dropped."
+                )
+                # Treat as failed delivery: don't store, don't forward.
+                # The request will time out naturally -> success_rate = 0.
+                return
+
             store_in_cache(
                 self.base,
                 node_id,
@@ -748,6 +850,21 @@ class NetworkScenario:
         if node_id == edge_id:
             user_success = path_success(self.base, msg.path, exclude_terminal=False)
             user_hops = max(0, len(msg.path) - 1)
+
+            # -------------------------------------------------------------------
+            # Obj2: verify Merkle proof at the final consumer (edge node).
+            # If auth is enabled and proof is invalid, DROP — skip marking
+            # this chunk as delivered so the request times out -> success_rate=0.
+            # This is the cache-poisoning detection at the consumer side.
+            # -------------------------------------------------------------------
+            if not self._verify_chunk_proof(msg.content_id, msg.chunk_hash, msg.merkle_proof):
+                print(
+                    f"[AUTH] Consumer delivery REJECTED: invalid Merkle proof "
+                    f"for content={msg.content_id!r} chunk={msg.chunk_id} "
+                    f"at edge={node_id!r}. Chunk dropped."
+                )
+                # Do NOT mark chunk as delivered. Request times out = failure in metrics.
+                return
 
             if not (self.chunking_enabled and msg.cache_hit):
                 self.register_discovered_path(
@@ -835,6 +952,9 @@ class NetworkScenario:
             request_id=msg.request_id,
             cache_node_id=msg.cache_node_id,
             cache_hit=msg.cache_hit,
+            # Obj2: propagate auth fields through the forwarding chain.
+            chunk_hash=msg.chunk_hash,
+            merkle_proof=msg.merkle_proof,
         )
         event_loop.schedule(
             self.hop_delay(upstream_id, data_phase=True),
@@ -894,6 +1014,8 @@ def build_exploration_snapshot(
         chunking_enabled=False,#does not matter
         arrival_window=exploration_window,
         exploration_window=exploration_window,
+        # auth not needed during path exploration
+        auth_enabled=False,
     )
     return ExplorationSnapshot(
         provider_hops= clone_provider_hops(scenario.provider_hops),
@@ -914,6 +1036,10 @@ def run_dynamic_scenario(
     content_publishers: Optional[Dict[str, Sequence[str]]] = None,
     exploration_window: Optional[float] = None,
     exploration_snapshot: Optional[ExplorationSnapshot] = None,
+    # Obj2: auth layer parameters (all optional, default to off).
+    auth_enabled: bool = False,
+    ledger: Optional["Ledger"] = None,
+    chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
 ) -> Dict[str, float]:
     if not active_publishers or num_users <= 0 or not content_specs:
         return empty_summary()
@@ -929,6 +1055,9 @@ def run_dynamic_scenario(
         arrival_window=arrival_window,
         exploration_window=exploration_window,
         exploration_snapshot=exploration_snapshot,
+        auth_enabled=auth_enabled,
+        ledger=ledger,
+        chunk_records_map=chunk_records_map,
     )
     round_summaries: List[Dict[str, float]] = []
     #recovery_multiplier = max(0.6, min(1.6, arrival_window / 40.0))
@@ -958,6 +1087,9 @@ def simulate_lmm1(
     arrival_window: float = 40.0,
     exploration_window: Optional[float] = None,
     exploration_snapshot: Optional[ExplorationSnapshot] = None,
+    auth_enabled: bool = False,
+    ledger: Optional["Ledger"] = None,
+    chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
 ) -> Dict[str, float]:
     return run_dynamic_scenario(
         base,
@@ -971,6 +1103,9 @@ def simulate_lmm1(
         content_publishers=content_publishers,
         exploration_window=exploration_window,
         exploration_snapshot=exploration_snapshot,
+        auth_enabled=auth_enabled,
+        ledger=ledger,
+        chunk_records_map=chunk_records_map,
     )
 
 
@@ -985,6 +1120,9 @@ def simulate_lmm2(
     arrival_window: float = 40.0,
     exploration_window: Optional[float] = None,
     exploration_snapshot: Optional[ExplorationSnapshot] = None,
+    auth_enabled: bool = False,
+    ledger: Optional["Ledger"] = None,
+    chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
 ) -> Dict[str, float]:
     return run_dynamic_scenario(
         base,
@@ -998,4 +1136,7 @@ def simulate_lmm2(
         content_publishers=content_publishers,
         exploration_window=exploration_window,
         exploration_snapshot=exploration_snapshot,
+        auth_enabled=auth_enabled,
+        ledger=ledger,
+        chunk_records_map=chunk_records_map,
     )

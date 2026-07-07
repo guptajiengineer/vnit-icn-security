@@ -192,6 +192,13 @@ class  DataMessage:
     request_id: Optional[str] = None
     cache_node_id: Optional[str] = None
     cache_hit: bool = False
+    # -----------------------------------------------------------------------
+    # Obj2 additions — cryptographic authentication fields.
+    # Both are Optional so existing code that builds DataMessage without these
+    # fields continues to work unchanged (default = None).
+    # -----------------------------------------------------------------------
+    chunk_hash: Optional[str] = None       # SHA-256 hex of the plaintext chunk
+    merkle_proof: Optional[list] = None    # Sibling-path proof: [str(leaf_index), sib_0, ...]
 
 
 @dataclass
@@ -218,3 +225,30 @@ class  ExplorationSnapshot:
     provider_hops: Dict[str, Dict[str, int]]
     discovered_paths: Dict[Tuple[str, str], Dict[Tuple[str, ...], Tuple[str, List[str], bool]]]
     path_table: Dict[Tuple[str, str], List[PathRecord]]
+
+
+# ---------------------------------------------------------------------------
+# Obj2 new dataclass — ChunkRecord
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ChunkRecord:
+    """
+    Stores all per-chunk cryptographic material produced by publish_content().
+
+    Fields
+    ------
+    chunk_id      : int   — zero-based index of this chunk within the content.
+    chunk_hash    : str   — SHA-256 hex digest of the plaintext chunk bytes.
+    chunk_locator : str   — content-addressed locator: "{content_id}:{chunk_id}".
+                            Deliberately NOT a physical path (multipath is dynamic).
+    chunk_key     : bytes — 32-byte AES-256 key used to encrypt this chunk.
+    nonce         : bytes — 12-byte AES-GCM nonce used to encrypt this chunk.
+    ciphertext    : bytes — AES-256-GCM authenticated ciphertext of the chunk.
+    """
+    chunk_id      : int
+    chunk_hash    : str
+    chunk_locator : str
+    chunk_key     : bytes
+    nonce         : bytes
+    ciphertext    : bytes
