@@ -199,6 +199,7 @@ class  DataMessage:
     # -----------------------------------------------------------------------
     chunk_hash: Optional[str] = None       # SHA-256 hex of the plaintext chunk
     merkle_proof: Optional[list] = None    # Sibling-path proof: [str(leaf_index), sib_0, ...]
+    chunk_signature: Optional[bytes] = None  # Ed25519 signature over chunk_hash (Step 4)
 
 
 @dataclass
@@ -246,9 +247,10 @@ class ChunkRecord:
     nonce         : bytes — 12-byte AES-GCM nonce used to encrypt this chunk.
     ciphertext    : bytes — AES-256-GCM authenticated ciphertext of the chunk.
     """
-    chunk_id      : int
-    chunk_hash    : str
-    chunk_locator : str
-    chunk_key     : bytes
-    nonce         : bytes
-    ciphertext    : bytes
+    chunk_id        : int
+    chunk_hash      : str
+    chunk_locator   : str
+    chunk_key       : bytes
+    nonce           : bytes
+    ciphertext      : bytes
+    chunk_signature : Optional[bytes] = None  # Ed25519 signature over chunk_hash (Step 4)

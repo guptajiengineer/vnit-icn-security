@@ -22,7 +22,7 @@ Step 4 — Blockchain hash registration (Merkle root storage + retrieval)
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, List
 
 
 # ---------------------------------------------------------------------------
@@ -126,6 +126,46 @@ class Ledger(ABC):
         """
         ...
 
+    @abstractmethod
+    def store_merkle_tree(self, content_id: str, tree_levels: List[List[str]]) -> None:
+        """
+        Persist the full Merkle tree structure for a content object.
+
+        This is stored alongside the Merkle root (registered via
+        :meth:`register_content_root`) so that proofs can be generated
+        per-chunk at serving time without re-building the tree.
+
+        Parameters
+        ----------
+        content_id : str
+            The ICN content identifier.
+        tree_levels : List[List[str]]
+            The ``tree_levels`` list returned by ``crypto_auth.build_merkle_tree()``.
+            tree_levels[0] = padded leaf layer, tree_levels[-1] = [root_hash].
+        """
+        ...
+
+    @abstractmethod
+    def get_merkle_tree(self, content_id: str) -> List[List[str]]:
+        """
+        Retrieve the Merkle tree levels previously stored for a content object.
+
+        Parameters
+        ----------
+        content_id : str
+
+        Returns
+        -------
+        List[List[str]]
+            The tree_levels structure (see :meth:`store_merkle_tree`).
+
+        Raises
+        ------
+        KeyError
+            If no tree has been stored for ``content_id``.
+        """
+        ...
+
 
 # ---------------------------------------------------------------------------
 # Phase-1 concrete implementation: in-memory simulation
@@ -153,6 +193,7 @@ class SimulatedLedger(Ledger):
     def __init__(self) -> None:
         self._producers: Dict[str, bytes] = {}
         self._content_roots: Dict[str, str] = {}
+        self._merkle_trees: Dict[str, List[List[str]]] = {}
 
     # ------------------------------------------------------------------
     # Ledger interface
@@ -196,6 +237,30 @@ class SimulatedLedger(Ledger):
         except KeyError:
             raise KeyError(
                 f"SimulatedLedger: producer {producer_id!r} is not registered"
+            ) from None
+
+    # ------------------------------------------------------------------
+    # Convenience helpers (not part of the Ledger contract)
+    # ------------------------------------------------------------------
+
+    def store_merkle_tree(self, content_id: str, tree_levels: List[List[str]]) -> None:
+        """Store or overwrite the Merkle tree levels for a content object."""
+        self._merkle_trees[content_id] = tree_levels
+
+    def get_merkle_tree(self, content_id: str) -> List[List[str]]:
+        """
+        Return the Merkle tree levels for ``content_id``.
+
+        Raises
+        ------
+        KeyError
+            If no tree has been stored for content_id yet.
+        """
+        try:
+            return self._merkle_trees[content_id]
+        except KeyError:
+            raise KeyError(
+                f"SimulatedLedger: no Merkle tree stored for content_id={content_id!r}"
             ) from None
 
     # ------------------------------------------------------------------

@@ -697,3 +697,70 @@ def generate_producer_keypair() -> Tuple[Ed25519PrivateKey, bytes]:
         format=serialization.PublicFormat.Raw,
     )
     return private_key, public_key_bytes
+
+
+# ==========================================================================
+# Step 4 — ECC chunk signing and verification (Ed25519)
+# ==========================================================================
+
+def sign_chunk(private_key: Ed25519PrivateKey, chunk_hash_hex: str) -> bytes:
+    """
+    Sign a chunk's SHA-256 hash with the producer's Ed25519 private key.
+
+    The signature covers the ASCII encoding of *chunk_hash_hex* (the 64-char
+    lowercase hex string produced by :func:`chunk_hash`).  Signing the hash
+    rather than the raw bytes keeps the signed payload small and deterministic.
+
+    Parameters
+    ----------
+    private_key : Ed25519PrivateKey
+        Producer's Ed25519 signing key (from :func:`generate_producer_keypair`).
+    chunk_hash_hex : str
+        64-character lowercase hex SHA-256 digest of the plaintext chunk.
+
+    Returns
+    -------
+    bytes
+        64-byte Ed25519 signature.
+    """
+    return private_key.sign(chunk_hash_hex.encode("ascii"))
+
+
+def verify_chunk_signature(
+    public_key_bytes: bytes,
+    chunk_hash_hex: str,
+    signature: bytes,
+) -> bool:
+    """
+    Verify an Ed25519 signature over a chunk hash hex string.
+
+    Parameters
+    ----------
+    public_key_bytes : bytes
+        32 raw bytes of the producer's Ed25519 public key (as stored on the
+        ledger by :func:`generate_producer_keypair`).
+    chunk_hash_hex : str
+        64-character lowercase hex SHA-256 digest of the chunk being verified.
+    signature : bytes
+        64-byte Ed25519 signature produced by :func:`sign_chunk`.
+
+    Returns
+    -------
+    bool
+        True  — signature is valid (chunk came from the registered producer).
+        False — signature invalid, or any input is missing/malformed.
+
+    Notes
+    -----
+    Any exception from the ``cryptography`` library (invalid key bytes,
+    wrong signature length, tampered payload) is caught and converted to
+    False so callers never need to handle exceptions for this step.
+    """
+    if not public_key_bytes or not chunk_hash_hex or not signature:
+        return False
+    try:
+        pub_key = Ed25519PublicKey.from_public_bytes(public_key_bytes)
+        pub_key.verify(signature, chunk_hash_hex.encode("ascii"))
+        return True
+    except Exception:
+        return False
