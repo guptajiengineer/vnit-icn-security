@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(docker context ls *)",
+      "Bash(go version *)",
+      "Bash(npm --version)",
+      "Bash(docker context *)",
+      "Bash(docker version *)",
+      "Bash(\"D:/code project/vnit/fin_fyp/fyp/fabric/fabric-samples/bin/peer\" version)",
+      "Bash(Start-Process \"C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe\")",
+      "Bash(powershell -Command \"Start-Process 'C:\\\\\\\\Program Files\\\\\\\\Docker\\\\\\\\Docker\\\\\\\\Docker Desktop.exe'\")",
+      "Bash(\"D:/code project/vnit/fin_fyp/fyp/fabric/fabric-samples/bin/peer.exe\" version)",
+      "Bash(docker info *)",
+      "Bash(xxd \"D:/code project/vnit/fin_fyp/fyp/fabric/fabric-samples/bin/peer\")",
+      "Bash(wsl --list --verbose)",
+      "Bash(wsl -l -v)",
+      "Bash(wsl *)",
+      "Bash(python -m json.tool)",
+      "Bash(python *)",
+      "Bash(powershell -Command \"netstat -an | Select-String '2375|2376'\")",
+      "Bash(pip show *)",
+      "Bash(pip install *)",
+      "Bash(pip index *)",
+      "Bash(pip search *)",
+      "WebFetch(domain:pypi.org)"
+    ]
+  }
+}
