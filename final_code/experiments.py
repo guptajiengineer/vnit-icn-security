@@ -12,7 +12,7 @@ from models import BaseTopology, ChunkRecord, ContentSpec
 from network import build_base_topology
 from network import expand_user_edge_nodes, get_user_nodes
 from content import assign_content_publishers, publish_content
-from chain import SimulatedLedger
+from fabric.chain import SimulatedLedger, FabricLedger
 from network_scenario import (build_exploration_snapshot, simulate_lmm1, simulate_lmm2,)
 
 
@@ -111,7 +111,7 @@ def  evaluate_topology_scenarios(
                     wrapped_manifests_map: Dict[str, bytes] = {}
 
                     if auth_enabled:
-                        ledger = SimulatedLedger()
+                        ledger = FabricLedger()
 
                         # Step 5: Generate one X25519 consumer keypair per
                         # experiment run.  All edge nodes share this keypair
@@ -122,23 +122,46 @@ def  evaluate_topology_scenarios(
                             crypto_auth.generate_consumer_keypair()
                         )
 
-                        # Use num_users as the chunk_count proxy — it's the
-                        # maximum number of paths that can be simultaneously
-                        # selected (one per user), matching the runtime logic
-                        # in NetworkScenario.on_user_request().
-                        chunk_count_for_publish = max(1, num_users)
+                        # chunk_count upper bound: when chunking is on, one chunk
+                        # is sent per selected path and at most one path per active
+                        # publisher is discoverable, so num_publishers is the
+                        # ceiling.  When chunking is off only path[0] is used
+                        # → always 1 chunk.  Using num_users was wrong: it could
+                        # be smaller than the actual path count, leaving high
+                        # chunk_id values without a matching ChunkRecord and
+                        # silently bypassing auth verification.
+                        chunk_count_for_publish = max(1, num_publishers if chunking_enabled else 1)
+
+                        # Per-producer keypair cache: generate each producer's
+                        # Ed25519 keypair exactly once and register it on the
+                        # ledger.  Passing the cached private key to subsequent
+                        # publish_content calls prevents key overwriting, which
+                        # would invalidate ChunkRecord signatures from earlier
+                        # calls for the same producer_id.
+                        producer_keys: Dict[str, Any] = {}
+
                         for content_spec in content_specs:
-                            producer_id = (
-                                active_publishers[0] if active_publishers else "producer_0"
+                            # producer_id must match _get_primary_producer(), which
+                            # returns content_publishers[content_id][0].
+                            # assign_content_publishers() sorts its output, so this
+                            # is the alphabetically-first publisher for the content.
+                            content_pub_list = content_publishers.get(
+                                content_spec.content_id, list(active_publishers)
                             )
-                            # publish_content now returns a 3-tuple:
-                            # (plaintext_manifest, chunk_records, wrapped_manifest)
+                            producer_id = content_pub_list[0] if content_pub_list else "producer_0"
+
+                            if producer_id not in producer_keys:
+                                priv, pub_bytes = crypto_auth.generate_producer_keypair()
+                                ledger.register_producer(producer_id, pub_bytes)
+                                producer_keys[producer_id] = priv
+
                             _manifest, chunk_records, wrapped_manifest = publish_content(
                                 content_spec=content_spec,
                                 chunk_count=chunk_count_for_publish,
                                 ledger=ledger,
                                 producer_id=producer_id,
                                 consumer_public_key=consumer_public_key,
+                                producer_private_key=producer_keys[producer_id],
                             )
                             chunk_records_map[content_spec.content_id] = chunk_records
                             if wrapped_manifest is not None:

@@ -8,8 +8,9 @@ from typing import Dict, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING
 from models import BaseTopology, ChunkRecord, ContentSpec
 
 if TYPE_CHECKING:
-    from chain import Ledger
+    from fabric.chain import Ledger
     from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 
 def build_default_content_specs(content_count: int) -> List[ContentSpec]:
@@ -150,6 +151,7 @@ def publish_content(
     ledger: "Ledger",
     producer_id: str,
     consumer_public_key: "Optional[X25519PublicKey]" = None,
+    producer_private_key: "Optional[Ed25519PrivateKey]" = None,
 ) -> Tuple[List[Dict], List[ChunkRecord], Optional[bytes]]:
     """
     Execute Steps 1–6 of the cryptographic authentication protocol for one
@@ -157,10 +159,13 @@ def publish_content(
 
     Step 1 — Producer registration
     --------------------------------
-    Generate a fresh Ed25519 keypair and register the public key on the ledger.
-    Registration is idempotent (overwrites any previously stored key).  The
-    private key is retained in this function for per-chunk signing (Step 4) and
-    discarded afterwards — only the signatures end up in the ChunkRecords.
+    If *producer_private_key* is None, generate a fresh Ed25519 keypair and
+    register the public key on the ledger.  If a key is supplied, that key is
+    used for signing and no ledger write is performed — the caller is responsible
+    for ensuring the matching public key is already registered.  Callers that
+    publish multiple content objects for the same producer_id must supply the
+    same private key for every call; otherwise the ledger entry would be
+    overwritten and earlier ChunkRecord signatures would no longer verify.
 
     Step 2 — Content chunking (reuses existing count, no new logic)
     ----------------------------------------------------------------
@@ -224,16 +229,18 @@ def publish_content(
     content_id = content_spec.content_id
 
     # ------------------------------------------------------------------
-    # Step 1: Producer registration — always generate a fresh keypair.
-    # The private key is retained here (not just its public half) so that
-    # each chunk's hash can be signed in Step 4.  After signing, the private
-    # key is no longer referenced and will be garbage-collected.
-    # Using `register_producer` with a fresh key each time is safe because
-    # SimulatedLedger creates a new ledger instance per experiment run;
-    # real ledgers should use a persisted long-term key instead.
+    # Step 1: Producer registration.
+    # If the caller supplies a producer_private_key the producer is already
+    # registered on the ledger — skip generation and re-registration so that
+    # the on-ledger public key stays stable across multiple publish_content
+    # calls for the same producer_id.  Overwriting the ledger entry would
+    # invalidate all ChunkRecord signatures produced by earlier calls.
     # ------------------------------------------------------------------
-    private_key, pub_key_bytes = crypto_auth.generate_producer_keypair()
-    ledger.register_producer(producer_id, pub_key_bytes)
+    if producer_private_key is not None:
+        private_key = producer_private_key
+    else:
+        private_key, pub_key_bytes = crypto_auth.generate_producer_keypair()
+        ledger.register_producer(producer_id, pub_key_bytes)
 
     # ------------------------------------------------------------------
     # Steps 2 + 2.5 + 3 + 4: chunk synthesis → hash → encrypt → sign

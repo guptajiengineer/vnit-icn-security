@@ -1,0 +1,44 @@
+# ── Python compiled files ──────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Experiment outputs (generated; commit selectively if needed) ───────────────
+output/
+edge_*/
+
+# ── Fabric credentials (contain private keys — NEVER commit) ──────────────────
+fabric/creds/
+fabric_creds/
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Dump directory ────────────────────────────────────────────────────────────
+dump/
+
+# ── OS noise ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor noise ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
