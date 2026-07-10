@@ -1,1 +1,0 @@
-This is readme file of icn project, needs to be updated later
