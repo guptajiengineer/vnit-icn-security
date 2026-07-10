@@ -24,7 +24,7 @@ from state import (clone_base_topology, clone_discovered_paths, clone_path_table
 from network import choose_cache_node, expand_user_edge_nodes
 
 if TYPE_CHECKING:
-    from chain import Ledger
+    from fabric.chain import Ledger
     from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 
@@ -636,20 +636,29 @@ class NetworkScenario:
 
         Design
         ------
-        - If auth is disabled, or no root is registered, always return True.
+        - If auth is disabled or no ledger is configured, always return True.
+        - When auth IS enabled, missing chunk_hash or proof is an unverifiable
+          message — return False.  This helper is only called from the fetch
+          branch of on_node_data (explore messages return before reaching it),
+          so legitimate fetch-mode DataMessages always carry both fields when
+          auth is on.  Absent fields mean either the ChunkRecord index was out
+          of range (misconfiguration) or the proof was stripped (attack); both
+          cases must be rejected rather than allowed through.
+        - If no Merkle root is registered for the content yet, allow through
+          (content may be in-flight during ledger registration).
         - Merkle proof is checked first; if it fails, return False immediately.
-        - If ``chunk_signature`` is provided and the producer is registered on
-          the ledger, verify the Ed25519 signature.  A missing producer key
-          (e.g. content published by a node not yet on-chain) is treated as
-          "allow through" to avoid breaking partially-authenticated scenarios.
-        - Only returns False when auth IS on AND a check definitively fails.
+        - If ``chunk_signature`` is provided and the producer is registered,
+          verify the Ed25519 signature.  A missing signature or unregistered
+          producer key is allowed through — signature is an additive defence
+          on top of the Merkle check, not a gate by itself.
         """
         if not self.auth_enabled or self.ledger is None:
             return True
         if not chunk_hash or not proof:
-            # Auth is on but message carries no proof — allow through
-            # (e.g. explore-mode messages never carry auth fields).
-            return True
+            # Auth is on but the message carries no proof — this is either a
+            # misconfiguration (chunk_id out of range at publish time) or a
+            # stripped-proof attack.  Reject in both cases.
+            return False
 
         # --- Merkle proof ---
         try:

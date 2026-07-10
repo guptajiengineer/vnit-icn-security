@@ -1,0 +1,351 @@
+"""
+fabric/chain.py — Ledger abstraction for the ICN blockchain authentication layer.
+
+Design contract
+---------------
+`Ledger` is an ABC that defines the minimum on-chain API required by the
+authentication layer.  All application code (content.py, network_scenario.py,
+experiments.py) imports and types against `Ledger` only.
+
+`SimulatedLedger` is the Phase-1 concrete implementation: plain in-memory dicts,
+no persistence, no real distributed ledger.  When Hyperledger Fabric or Iroha are
+integrated in a later phase, a new class (e.g. `FabricLedger(Ledger)`) implementing
+the same four methods replaces `SimulatedLedger` at the call-site in experiments.py
+— **no other file needs to change**.
+
+Step covered
+------------
+Step 1 — Producer registration (simulated on-chain)
+Step 4 — Blockchain hash registration (Merkle root storage + retrieval)
+"""
+
+from __future__ import annotations
+
+import json
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional
+
+
+# ---------------------------------------------------------------------------
+# Abstract interface
+# ---------------------------------------------------------------------------
+
+class Ledger(ABC):
+    """
+    Minimal on-chain API required by the cryptographic authentication layer.
+
+    Implementors
+    ------------
+    - SimulatedLedger   : Phase 1 (this file) — in-memory dict, no I/O.
+    - FabricLedger      : Phase 2 (future)     — Hyperledger Fabric gateway.
+    - IrohaLedger       : Phase 2 (future)     — Iroha gRPC client.
+    """
+
+    @abstractmethod
+    def register_producer(self, producer_id: str, public_key: bytes) -> None:
+        """
+        Register a content producer on the ledger.
+
+        Parameters
+        ----------
+        producer_id : str
+            A unique identifier for the producer (e.g. a node_id from the
+            network topology, or a stable UUID assigned at startup).
+        public_key : bytes
+            The producer's Ed25519 public key (32 bytes) used as an on-chain
+            identity anchor.  This is *not* the consumer X25519 encryption key.
+
+        Notes
+        -----
+        Calling this for an already-registered producer_id is idempotent —
+        implementations should overwrite the stored key so that key rotation
+        is possible without requiring a separate "update" method.
+        """
+        ...
+
+    @abstractmethod
+    def register_content_root(self, content_id: str, merkle_root: str) -> None:
+        """
+        Record the Merkle root of a content object's chunk-hash tree.
+
+        Parameters
+        ----------
+        content_id : str
+            The ICN name / content identifier (e.g. "a1", "a2").
+        merkle_root : str
+            Hex-encoded SHA-256 Merkle root over all chunk hashes for this
+            content object.
+
+        Notes
+        -----
+        Registering the Merkle root rather than per-chunk hashes is a deliberate
+        design choice to minimise on-chain footprint.  When real Fabric/Iroha
+        transactions are used the root becomes a single transaction per content
+        object, regardless of chunk count.
+        """
+        ...
+
+    @abstractmethod
+    def get_content_root(self, content_id: str) -> str:
+        """
+        Retrieve the previously registered Merkle root for a content object.
+
+        Parameters
+        ----------
+        content_id : str
+
+        Returns
+        -------
+        str
+            Hex-encoded Merkle root.
+
+        Raises
+        ------
+        KeyError
+            If no root has been registered for ``content_id``.
+        """
+        ...
+
+    @abstractmethod
+    def get_producer_key(self, producer_id: str) -> bytes:
+        """
+        Retrieve the public key registered for a producer.
+
+        Parameters
+        ----------
+        producer_id : str
+
+        Returns
+        -------
+        bytes
+            Ed25519 public key bytes (32 bytes).
+
+        Raises
+        ------
+        KeyError
+            If ``producer_id`` has not been registered.
+        """
+        ...
+
+    @abstractmethod
+    def store_merkle_tree(self, content_id: str, tree_levels: List[List[str]]) -> None:
+        """
+        Persist the full Merkle tree structure for a content object.
+
+        This is stored alongside the Merkle root (registered via
+        :meth:`register_content_root`) so that proofs can be generated
+        per-chunk at serving time without re-building the tree.
+
+        Parameters
+        ----------
+        content_id : str
+            The ICN content identifier.
+        tree_levels : List[List[str]]
+            The ``tree_levels`` list returned by ``crypto_auth.build_merkle_tree()``.
+            tree_levels[0] = padded leaf layer, tree_levels[-1] = [root_hash].
+        """
+        ...
+
+    @abstractmethod
+    def get_merkle_tree(self, content_id: str) -> List[List[str]]:
+        """
+        Retrieve the Merkle tree levels previously stored for a content object.
+
+        Parameters
+        ----------
+        content_id : str
+
+        Returns
+        -------
+        List[List[str]]
+            The tree_levels structure (see :meth:`store_merkle_tree`).
+
+        Raises
+        ------
+        KeyError
+            If no tree has been stored for ``content_id``.
+        """
+        ...
+
+
+# ---------------------------------------------------------------------------
+# Phase-1 concrete implementation: in-memory simulation
+# ---------------------------------------------------------------------------
+
+class SimulatedLedger(Ledger):
+    """
+    In-memory ledger for Phase-1 simulation.
+
+    Storage
+    -------
+    _producers    : Dict[str, bytes]  — producer_id -> Ed25519 public key bytes
+    _content_roots: Dict[str, str]    — content_id  -> Merkle root hex string
+
+    No persistence, no serialisation, no network I/O.  All operations are O(1).
+
+    Swap-out contract
+    -----------------
+    To replace this with a real chain, implement `Ledger` in a new class and
+    pass that instance wherever `SimulatedLedger()` is currently constructed
+    (see `experiments.py`).  Application code imports only `Ledger`; nothing
+    else changes.
+    """
+
+    def __init__(self) -> None:
+        self._producers: Dict[str, bytes] = {}
+        self._content_roots: Dict[str, str] = {}
+        self._merkle_trees: Dict[str, List[List[str]]] = {}
+
+    # ------------------------------------------------------------------
+    # Ledger interface
+    # ------------------------------------------------------------------
+
+    def register_producer(self, producer_id: str, public_key: bytes) -> None:
+        """Store or overwrite the producer's public key (idempotent)."""
+        self._producers[producer_id] = public_key
+
+    def register_content_root(self, content_id: str, merkle_root: str) -> None:
+        """Store or overwrite the Merkle root for a content object."""
+        self._content_roots[content_id] = merkle_root
+
+    def get_content_root(self, content_id: str) -> str:
+        """
+        Return the Merkle root for ``content_id``.
+
+        Raises
+        ------
+        KeyError
+            If content_id has not been registered yet.
+        """
+        try:
+            return self._content_roots[content_id]
+        except KeyError:
+            raise KeyError(
+                f"SimulatedLedger: no Merkle root registered for content_id={content_id!r}"
+            ) from None
+
+    def get_producer_key(self, producer_id: str) -> bytes:
+        """
+        Return the Ed25519 public key for ``producer_id``.
+
+        Raises
+        ------
+        KeyError
+            If producer_id has not been registered yet.
+        """
+        try:
+            return self._producers[producer_id]
+        except KeyError:
+            raise KeyError(
+                f"SimulatedLedger: producer {producer_id!r} is not registered"
+            ) from None
+
+    # ------------------------------------------------------------------
+    # Convenience helpers (not part of the Ledger contract)
+    # ------------------------------------------------------------------
+
+    def store_merkle_tree(self, content_id: str, tree_levels: List[List[str]]) -> None:
+        """Store or overwrite the Merkle tree levels for a content object."""
+        self._merkle_trees[content_id] = tree_levels
+
+    def get_merkle_tree(self, content_id: str) -> List[List[str]]:
+        """
+        Return the Merkle tree levels for ``content_id``.
+
+        Raises
+        ------
+        KeyError
+            If no tree has been stored for content_id yet.
+        """
+        try:
+            return self._merkle_trees[content_id]
+        except KeyError:
+            raise KeyError(
+                f"SimulatedLedger: no Merkle tree stored for content_id={content_id!r}"
+            ) from None
+
+    # ------------------------------------------------------------------
+    # Convenience helpers (not part of the Ledger contract)
+    # ------------------------------------------------------------------
+
+    def is_producer_registered(self, producer_id: str) -> bool:
+        """Return True iff the producer has already been registered."""
+        return producer_id in self._producers
+
+    def is_content_registered(self, content_id: str) -> bool:
+        """Return True iff a Merkle root has been registered for this content."""
+        return content_id in self._content_roots
+
+    def __repr__(self) -> str:
+        return (
+            f"SimulatedLedger("
+            f"producers={list(self._producers.keys())}, "
+            f"contents={list(self._content_roots.keys())})"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Phase-2 concrete implementation: Hyperledger Fabric via gRPC Gateway SDK
+# ---------------------------------------------------------------------------
+
+class FabricLedger(Ledger):
+    """
+    Ledger backed by the icnledger chaincode on Hyperledger Fabric.
+
+    Connects directly to the Fabric Gateway gRPC service running inside the
+    peer using the official Gateway protocol (Endorse → Submit → CommitStatus
+    for writes; Evaluate for reads).
+
+    No subprocess.  No WSL.  No peer CLI.  No helper scripts.
+    All configuration is loaded from .env / environment variables.
+
+    Swap-in: replace SimulatedLedger() with FabricLedger() in experiments.py.
+    No other files need to change.
+    """
+
+    def __init__(self, config: Optional[object] = None) -> None:
+        from fabric_client.client import FabricGatewayClient
+        from fabric_client.config import FabricConfig
+        cfg = config if config is not None else FabricConfig.load()
+        self._client = FabricGatewayClient(cfg)
+
+    def close(self) -> None:
+        self._client.close()
+
+    # ------------------------------------------------------------------
+    # Ledger interface — writes (submit transactions)
+    # ------------------------------------------------------------------
+
+    def register_producer(self, producer_id: str, public_key: bytes) -> None:
+        self._client.submit("RegisterProducer", [producer_id, public_key.hex()])
+
+    def register_content_root(self, content_id: str, merkle_root: str) -> None:
+        self._client.submit("RegisterContentRoot", [content_id, merkle_root])
+
+    def store_merkle_tree(self, content_id: str, tree_levels: List[List[str]]) -> None:
+        self._client.submit("StoreMerkleTree", [content_id, json.dumps(tree_levels)])
+
+    # ------------------------------------------------------------------
+    # Ledger interface — reads (evaluate queries, no ledger write)
+    # ------------------------------------------------------------------
+
+    def get_content_root(self, content_id: str) -> str:
+        raw = self._client.evaluate("GetContentRoot", [content_id])
+        val = raw.decode("utf-8").strip()
+        if not val:
+            raise KeyError(content_id)
+        return val
+
+    def get_producer_key(self, producer_id: str) -> bytes:
+        raw = self._client.evaluate("GetProducerKey", [producer_id])
+        val = raw.decode("utf-8").strip()
+        if not val:
+            raise KeyError(producer_id)
+        return bytes.fromhex(val)
+
+    def get_merkle_tree(self, content_id: str) -> List[List[str]]:
+        raw = self._client.evaluate("GetMerkleTree", [content_id])
+        val = raw.decode("utf-8").strip()
+        if not val:
+            raise KeyError(content_id)
+        return json.loads(val)

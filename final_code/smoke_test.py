@@ -2,7 +2,7 @@ import sys
 sys.path.insert(0, '.')
 
 # --- chain.py smoke test ---
-from chain import SimulatedLedger
+from fabric.chain import SimulatedLedger
 l = SimulatedLedger()
 l.register_producer('p1', b'x' * 32)
 assert l.get_producer_key('p1') == b'x' * 32
@@ -71,7 +71,7 @@ print('PASS: Ed25519 sign_chunk / verify_chunk_signature')
 
 # --- content.py publish_content ---
 from content import publish_content, build_default_content_specs
-from chain import SimulatedLedger
+from fabric.chain import SimulatedLedger
 ledger = SimulatedLedger()
 specs = build_default_content_specs(2)
 manifest, records, wrapped = publish_content(specs[0], chunk_count=3, ledger=ledger, producer_id='p1')
