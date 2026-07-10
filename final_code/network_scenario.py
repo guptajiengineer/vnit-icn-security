@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import heapq
 import itertools
+import json
 from statistics import fmean
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING
 
@@ -24,6 +25,7 @@ from network import choose_cache_node, expand_user_edge_nodes
 
 if TYPE_CHECKING:
     from chain import Ledger
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 
 
 def state_key(edge_id: str, content_id: str) -> Tuple[str, str]:
@@ -100,6 +102,9 @@ class NetworkScenario:
         auth_enabled: bool = False,
         ledger: Optional["Ledger"] = None,
         chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
+        # Step 5: consumer keypair for manifest decryption.
+        consumer_private_key: Optional["X25519PrivateKey"] = None,
+        wrapped_manifests_map: Optional[Dict[str, bytes]] = None,
     ) :
         self.base = clone_base_topology(base)
         self.active_publishers = list(active_publishers)
@@ -149,6 +154,12 @@ class NetworkScenario:
         self.ledger: Optional["Ledger"] = ledger
         # chunk_records_map: content_id -> List[ChunkRecord] (indexed by chunk_id)
         self.chunk_records_map: Dict[str, List[ChunkRecord]] = chunk_records_map or {}
+        # Step 5: consumer private key for manifest unwrapping.
+        self.consumer_private_key: Optional["X25519PrivateKey"] = consumer_private_key
+        # Step 5: wrapped manifests keyed by content_id.
+        self.wrapped_manifests_map: Dict[str, bytes] = wrapped_manifests_map or {}
+        # Cache for already-unwrapped manifests (avoid re-decrypting per chunk).
+        self._unwrapped_manifests: Dict[str, List[Dict[str, Any]]] = {}
 
         if exploration_snapshot is None:
             self.provider_hops = {
@@ -588,45 +599,166 @@ class NetworkScenario:
         """
         Return the Merkle sibling-path proof for *chunk_id* within *content_id*.
 
-        The Merkle tree levels are stored on the ledger object under
-        ``_merkle_trees`` by ``publish_content()`` in content.py.  If auth is
-        not enabled or the tree is missing, returns None.
+        Uses the clean ``Ledger.get_merkle_tree()`` API (no duck-typing).
+        Returns None if the ledger is absent or the tree has not been registered.
         """
         if self.ledger is None:
             return None
-        merkle_trees = getattr(self.ledger, "_merkle_trees", {})
-        tree_levels = merkle_trees.get(content_id)
-        if tree_levels is None:
+        try:
+            tree_levels = self.ledger.get_merkle_tree(content_id)
+        except (KeyError, AttributeError):
             return None
         return crypto_auth.get_merkle_proof(tree_levels, chunk_id)
 
     # ------------------------------------------------------------------
-    # Obj2 helper: verify a Merkle proof against the ledger root.
-    # Returns True if valid OR if auth is disabled / root not found.
-    # Returns False only when auth IS enabled AND proof verification fails.
+    # Obj2 helper: primary producer for a content_id.
+    # Mirrors the selection made in experiments.py when calling publish_content.
+    # ------------------------------------------------------------------
+    def _get_primary_producer(self, content_id: str) -> Optional[str]:
+        """Return the first publisher listed for *content_id*, or None."""
+        publishers = self.content_publishers.get(content_id, self.active_publishers)
+        return publishers[0] if publishers else None
+
+    # ------------------------------------------------------------------
+    # Obj2 helper: verify Merkle proof + ECC signature (Steps 4 + previous).
+    # Returns True if valid OR if auth is disabled / data not found.
+    # Returns False only when auth IS enabled AND a check fails.
     # ------------------------------------------------------------------
     def _verify_chunk_proof(
-        self, content_id: str, chunk_hash: Optional[str], proof: Optional[list]
+        self,
+        content_id: str,
+        chunk_hash: Optional[str],
+        proof: Optional[list],
+        chunk_signature: Optional[bytes] = None,
     ) -> bool:
         """
-        Verify the Merkle proof for a chunk.
+        Verify the Merkle proof AND the Ed25519 producer signature for a chunk.
 
-        Design: if auth is disabled, or no root is registered (e.g. during
-        exploration phase), always return True — no disruption to normal flow.
-        Only return False when auth IS on AND the proof is present AND it fails.
+        Design
+        ------
+        - If auth is disabled, or no root is registered, always return True.
+        - Merkle proof is checked first; if it fails, return False immediately.
+        - If ``chunk_signature`` is provided and the producer is registered on
+          the ledger, verify the Ed25519 signature.  A missing producer key
+          (e.g. content published by a node not yet on-chain) is treated as
+          "allow through" to avoid breaking partially-authenticated scenarios.
+        - Only returns False when auth IS on AND a check definitively fails.
         """
         if not self.auth_enabled or self.ledger is None:
             return True
         if not chunk_hash or not proof:
-            # Auth is on but message carries no proof — treat as unverifiable;
-            # allow through to avoid breaking non-auth messages (e.g. explore mode).
+            # Auth is on but message carries no proof — allow through
+            # (e.g. explore-mode messages never carry auth fields).
             return True
+
+        # --- Merkle proof ---
         try:
             root = self.ledger.get_content_root(content_id)
         except KeyError:
-            # Root not registered yet (e.g. content not published via publish_content).
+            return True  # Root not registered yet — allow through.
+        if not crypto_auth.verify_merkle_proof(chunk_hash, proof, root):
+            return False
+
+        # --- ECC signature (Step 4) ---
+        if chunk_signature is not None:
+            producer_id = self._get_primary_producer(content_id)
+            if producer_id is not None:
+                try:
+                    pub_key = self.ledger.get_producer_key(producer_id)
+                    if not crypto_auth.verify_chunk_signature(
+                        pub_key, chunk_hash, chunk_signature
+                    ):
+                        return False
+                except KeyError:
+                    pass  # Producer not registered — allow through.
+
+        return True
+
+    # ------------------------------------------------------------------
+    # Obj2 helper: unwrap and cache the consumer manifest for a content.
+    # ------------------------------------------------------------------
+    def _get_unwrapped_manifest(self, content_id: str) -> Optional[List[Dict[str, Any]]]:
+        """
+        Unwrap the ECIES-encrypted manifest for *content_id* using the stored
+        consumer private key.  Caches the result so each manifest is decrypted
+        at most once per NetworkScenario instance.
+
+        Returns None if no wrapped manifest is available or decryption fails.
+        """
+        if content_id in self._unwrapped_manifests:
+            return self._unwrapped_manifests[content_id]
+
+        wrapped = self.wrapped_manifests_map.get(content_id)
+        if wrapped is None or self.consumer_private_key is None:
+            return None
+
+        try:
+            manifest_bytes = crypto_auth.unwrap_manifest_for_consumer(
+                wrapped, self.consumer_private_key
+            )
+            manifest: List[Dict[str, Any]] = json.loads(manifest_bytes.decode("utf-8"))
+            self._unwrapped_manifests[content_id] = manifest
+            return manifest
+        except Exception as exc:
+            print(
+                f"[AUTH] Manifest unwrap FAILED for content={content_id!r}: {exc}"
+            )
+            return None
+
+    # ------------------------------------------------------------------
+    # Obj2 helper: consumer-side full verification (Step 5/6).
+    # Called at the edge node after Merkle + signature checks pass.
+    # ------------------------------------------------------------------
+    def _consumer_verify_chunk(
+        self, content_id: str, chunk_id: int, chunk_hash: Optional[str]
+    ) -> bool:
+        """
+        Consumer-side authentication: unwrap manifest, verify the chunk hash
+        against the manifest record, then decrypt the ciphertext and re-hash
+        to confirm integrity end-to-end.
+
+        Flow
+        ----
+        1. Unwrap ECIES manifest → get chunk_key for this chunk.
+        2. Verify chunk_hash matches manifest entry (tampered-hash detection).
+        3. Decrypt ciphertext (from ChunkRecord) using chunk_key + nonce.
+        4. Re-hash plaintext and compare to chunk_hash (AES-GCM integrity).
+
+        Returns True if all steps pass or if consumer auth is not configured.
+        Returns False only when a check definitively fails.
+        """
+        if not self.auth_enabled or self.consumer_private_key is None:
             return True
-        return crypto_auth.verify_merkle_proof(chunk_hash, proof, root)
+
+        manifest = self._get_unwrapped_manifest(content_id)
+        if manifest is None:
+            # No manifest available — allow through (e.g. non-auth content).
+            return True
+
+        if chunk_id >= len(manifest):
+            # Chunk index outside manifest — allow through (shouldn't happen
+            # in a correctly configured run).
+            return True
+
+        entry = manifest[chunk_id]
+
+        # Step 1: verify the chunk hash matches the manifest record.
+        if entry.get("chunk_hash") != chunk_hash:
+            return False
+
+        # Steps 2–3: decrypt ciphertext and re-hash to confirm AES-GCM integrity.
+        chunk_records = self.chunk_records_map.get(content_id, [])
+        if chunk_id >= len(chunk_records):
+            # No ChunkRecord to decrypt — skip decrypt step, hash match passed.
+            return True
+
+        record = chunk_records[chunk_id]
+        try:
+            key_bytes = bytes.fromhex(entry["chunk_key"])
+            plaintext = crypto_auth.decrypt_chunk(record.ciphertext, key_bytes, record.nonce)
+            return crypto_auth.chunk_hash(plaintext) == chunk_hash
+        except Exception:
+            return False
 
     def on_node_interest(
         self,
@@ -728,6 +860,7 @@ class NetworkScenario:
                     data.merkle_proof = self._get_merkle_proof_for_chunk(
                         msg.content_id, msg.chunk_id
                     )
+                    data.chunk_signature = record.chunk_signature
 
             upstream_id = returned_path[-2]
             event_loop.schedule(
@@ -812,7 +945,7 @@ class NetworkScenario:
             # do not cache, log the rejection, and return.
             # If auth is disabled or no root registered, proceed normally.
             # -------------------------------------------------------------------
-            if not self._verify_chunk_proof(msg.content_id, msg.chunk_hash, msg.merkle_proof):
+            if not self._verify_chunk_proof(msg.content_id, msg.chunk_hash, msg.merkle_proof, msg.chunk_signature):
                 print(
                     f"[AUTH] Cache-store REJECTED: invalid Merkle proof "
                     f"for content={msg.content_id!r} chunk={msg.chunk_id} "
@@ -857,13 +990,21 @@ class NetworkScenario:
             # this chunk as delivered so the request times out -> success_rate=0.
             # This is the cache-poisoning detection at the consumer side.
             # -------------------------------------------------------------------
-            if not self._verify_chunk_proof(msg.content_id, msg.chunk_hash, msg.merkle_proof):
+            if not self._verify_chunk_proof(msg.content_id, msg.chunk_hash, msg.merkle_proof, msg.chunk_signature):
                 print(
                     f"[AUTH] Consumer delivery REJECTED: invalid Merkle proof "
                     f"for content={msg.content_id!r} chunk={msg.chunk_id} "
                     f"at edge={node_id!r}. Chunk dropped."
                 )
                 # Do NOT mark chunk as delivered. Request times out = failure in metrics.
+                return
+
+            if not self._consumer_verify_chunk(msg.content_id, msg.chunk_id, msg.chunk_hash):
+                print(
+                    f"[AUTH] Consumer verify FAILED: hash/decrypt mismatch "
+                    f"for content={msg.content_id!r} chunk={msg.chunk_id} "
+                    f"at edge={node_id!r}. Chunk dropped."
+                )
                 return
 
             if not (self.chunking_enabled and msg.cache_hit):
@@ -955,6 +1096,7 @@ class NetworkScenario:
             # Obj2: propagate auth fields through the forwarding chain.
             chunk_hash=msg.chunk_hash,
             merkle_proof=msg.merkle_proof,
+            chunk_signature=msg.chunk_signature,
         )
         event_loop.schedule(
             self.hop_delay(upstream_id, data_phase=True),
@@ -1040,6 +1182,8 @@ def run_dynamic_scenario(
     auth_enabled: bool = False,
     ledger: Optional["Ledger"] = None,
     chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
+    consumer_private_key: Optional["X25519PrivateKey"] = None,
+    wrapped_manifests_map: Optional[Dict[str, bytes]] = None,
 ) -> Dict[str, float]:
     if not active_publishers or num_users <= 0 or not content_specs:
         return empty_summary()
@@ -1058,6 +1202,8 @@ def run_dynamic_scenario(
         auth_enabled=auth_enabled,
         ledger=ledger,
         chunk_records_map=chunk_records_map,
+        consumer_private_key=consumer_private_key,
+        wrapped_manifests_map=wrapped_manifests_map,
     )
     round_summaries: List[Dict[str, float]] = []
     #recovery_multiplier = max(0.6, min(1.6, arrival_window / 40.0))
@@ -1090,6 +1236,8 @@ def simulate_lmm1(
     auth_enabled: bool = False,
     ledger: Optional["Ledger"] = None,
     chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
+    consumer_private_key: Optional["X25519PrivateKey"] = None,
+    wrapped_manifests_map: Optional[Dict[str, bytes]] = None,
 ) -> Dict[str, float]:
     return run_dynamic_scenario(
         base,
@@ -1106,6 +1254,8 @@ def simulate_lmm1(
         auth_enabled=auth_enabled,
         ledger=ledger,
         chunk_records_map=chunk_records_map,
+        consumer_private_key=consumer_private_key,
+        wrapped_manifests_map=wrapped_manifests_map,
     )
 
 
@@ -1123,6 +1273,8 @@ def simulate_lmm2(
     auth_enabled: bool = False,
     ledger: Optional["Ledger"] = None,
     chunk_records_map: Optional[Dict[str, List[ChunkRecord]]] = None,
+    consumer_private_key: Optional["X25519PrivateKey"] = None,
+    wrapped_manifests_map: Optional[Dict[str, bytes]] = None,
 ) -> Dict[str, float]:
     return run_dynamic_scenario(
         base,
@@ -1139,4 +1291,6 @@ def simulate_lmm2(
         auth_enabled=auth_enabled,
         ledger=ledger,
         chunk_records_map=chunk_records_map,
+        consumer_private_key=consumer_private_key,
+        wrapped_manifests_map=wrapped_manifests_map,
     )

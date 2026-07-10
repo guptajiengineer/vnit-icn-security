@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import random
 from typing import Dict, List, Optional, Sequence, Set, Tuple, TYPE_CHECKING
 
@@ -8,6 +9,7 @@ from models import BaseTopology, ChunkRecord, ContentSpec
 
 if TYPE_CHECKING:
     from chain import Ledger
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 
 
 def build_default_content_specs(content_count: int) -> List[ContentSpec]:
@@ -147,57 +149,66 @@ def publish_content(
     chunk_count: int,
     ledger: "Ledger",
     producer_id: str,
-) -> Tuple[List[Dict], List[ChunkRecord]]:
+    consumer_public_key: "Optional[X25519PublicKey]" = None,
+) -> Tuple[List[Dict], List[ChunkRecord], Optional[bytes]]:
     """
-    Execute Steps 1–4 of the cryptographic authentication protocol for one
+    Execute Steps 1–6 of the cryptographic authentication protocol for one
     content object.
 
     Step 1 — Producer registration
     --------------------------------
-    If ``producer_id`` is not yet registered on the ledger, generate an Ed25519
-    keypair and register the public key.  This is idempotent — calling
-    publish_content multiple times for the same producer is safe.
+    Generate a fresh Ed25519 keypair and register the public key on the ledger.
+    Registration is idempotent (overwrites any previously stored key).  The
+    private key is retained in this function for per-chunk signing (Step 4) and
+    discarded afterwards — only the signatures end up in the ChunkRecords.
 
     Step 2 — Content chunking (reuses existing count, no new logic)
     ----------------------------------------------------------------
-    ``chunk_count`` is the number of chunks to produce.  The caller passes the
-    same value that ``NetworkScenario`` derives at runtime (= number of selected
-    multipath records), so the auth layer is always consistent with the network
-    layer.  We do NOT recompute chunk_count here — we accept it as a parameter.
+    ``chunk_count`` is accepted as a parameter from the caller (NetworkScenario
+    derives it as the number of simultaneously selected multipath records).
 
-    Step 2.5 — Per-chunk hash generation
-    -------------------------------------
-    For each chunk i, compute SHA-256(chunk_bytes_i).
+    Step 2.5 — Per-chunk SHA-256 hash generation
 
-    Step 3 — Per-chunk encryption
-    --------------------------------
-    For each chunk i, encrypt with AES-256-GCM (fresh key + nonce per chunk).
+    Step 3 — Per-chunk AES-256-GCM encryption (fresh key + nonce per chunk)
 
-    Step 4 — Blockchain hash registration via Merkle root
-    -------------------------------------------------------
-    Build a binary Merkle tree over all chunk hashes, then register only the
-    root on the ledger.  This keeps on-chain footprint O(1) per content object
-    regardless of chunk count — ready for real Fabric/Iroha swap-in.
+    Step 4 — Per-chunk Ed25519 signature over the chunk hash
+    ---------------------------------------------------------
+    sign_chunk(private_key, chunk_hash) signs the hex-encoded SHA-256 hash of
+    each chunk's plaintext.  The signature is stored in ChunkRecord.chunk_signature
+    and attached to outgoing DataMessages by NetworkScenario so receivers can
+    verify the chunk came from the registered producer.
+
+    Step 4.5 — Blockchain registration via Merkle root
+    ---------------------------------------------------
+    Build a binary Merkle tree over all chunk hashes.  Register only the root
+    on the ledger (O(1) on-chain footprint regardless of chunk count).  Also
+    store the full tree_levels via ledger.store_merkle_tree() so per-chunk
+    proofs can be derived at serving time.
+
+    Step 5 — Consumer manifest wrapping (optional)
+    -----------------------------------------------
+    If ``consumer_public_key`` is supplied, the plaintext manifest
+    (List[{chunk_hash, chunk_locator, chunk_key}]) is JSON-serialised and
+    encrypted with ECIES-style hybrid encryption (X25519 + HKDF + AES-256-GCM)
+    so only the holder of the corresponding private key can read the chunk keys.
+    The wrapped bytes are returned as the third element of the return tuple.
 
     Parameters
     ----------
     content_spec : ContentSpec
-        The content specification (provides content_id).
-    chunk_count : int
-        Number of chunks to produce.  Must be >= 1.
+    chunk_count : int   — must be >= 1
     ledger : Ledger
-        The chain interface to register producer and content root.
     producer_id : str
-        The node_id (or stable identifier) of the producing node.
+    consumer_public_key : Optional[X25519PublicKey]
+        If provided, the manifest is wrapped for this consumer.
 
     Returns
     -------
-    (manifest, chunk_records) : Tuple[List[Dict], List[ChunkRecord]]
-        manifest      : JSON-serialisable list of {chunk_hash, chunk_locator,
-                        chunk_key} dicts — one entry per chunk.
-        chunk_records : List of ChunkRecord objects carrying all crypto material
-                        (used by NetworkScenario to attach hash+proof to
-                        outgoing DataMessages).
+    (manifest, chunk_records, wrapped_manifest)
+        manifest         : plaintext manifest (JSON-serialisable list).
+        chunk_records    : List[ChunkRecord] carrying all crypto material.
+        wrapped_manifest : ECIES-wrapped manifest bytes, or None if
+                           consumer_public_key was not supplied.
 
     Raises
     ------
@@ -213,30 +224,36 @@ def publish_content(
     content_id = content_spec.content_id
 
     # ------------------------------------------------------------------
-    # Step 1: Producer registration (simulated on-chain)
+    # Step 1: Producer registration — always generate a fresh keypair.
+    # The private key is retained here (not just its public half) so that
+    # each chunk's hash can be signed in Step 4.  After signing, the private
+    # key is no longer referenced and will be garbage-collected.
+    # Using `register_producer` with a fresh key each time is safe because
+    # SimulatedLedger creates a new ledger instance per experiment run;
+    # real ledgers should use a persisted long-term key instead.
     # ------------------------------------------------------------------
-    if not ledger.is_producer_registered(producer_id):  # type: ignore[attr-defined]
-        # SimulatedLedger exposes is_producer_registered(); for real ledgers
-        # this check can be omitted (register is idempotent).
-        _private_key, pub_key_bytes = crypto_auth.generate_producer_keypair()
-        ledger.register_producer(producer_id, pub_key_bytes)
+    private_key, pub_key_bytes = crypto_auth.generate_producer_keypair()
+    ledger.register_producer(producer_id, pub_key_bytes)
 
     # ------------------------------------------------------------------
-    # Steps 2 + 2.5 + 3: chunk synthesis → hash → encrypt
+    # Steps 2 + 2.5 + 3 + 4: chunk synthesis → hash → encrypt → sign
     # ------------------------------------------------------------------
     chunk_hashes: List[str] = []
     chunk_records: List[ChunkRecord] = []
 
     for chunk_id in range(chunk_count):
-        # Step 2: synthesise chunk bytes (deterministic pseudo-content).
+        # Step 2: deterministic synthetic chunk bytes.
         chunk_bytes = _synthetic_chunk_bytes(content_id, chunk_id)
 
-        # Step 2.5: per-chunk hash.
+        # Step 2.5: SHA-256 hash of plaintext.
         h = crypto_auth.chunk_hash(chunk_bytes)
         chunk_hashes.append(h)
 
-        # Step 3: per-chunk encryption.
+        # Step 3: AES-256-GCM encryption (fresh key + nonce per chunk).
         ciphertext, key, nonce = crypto_auth.encrypt_chunk(chunk_bytes)
+
+        # Step 4: Ed25519 signature over the hex-encoded hash.
+        signature = crypto_auth.sign_chunk(private_key, h)
 
         locator = f"{content_id}:{chunk_id}"
         chunk_records.append(
@@ -247,26 +264,31 @@ def publish_content(
                 chunk_key=key,
                 nonce=nonce,
                 ciphertext=ciphertext,
+                chunk_signature=signature,
             )
         )
 
     # ------------------------------------------------------------------
-    # Step 4: Merkle tree + ledger registration
+    # Step 4.5: Merkle tree + ledger registration
     # ------------------------------------------------------------------
     root_hash, tree_levels = crypto_auth.build_merkle_tree(chunk_hashes)
     ledger.register_content_root(content_id, root_hash)
-
-    # Store tree_levels on the ledger so NetworkScenario can retrieve proofs.
-    # SimulatedLedger stores it via a secondary attribute; real ledgers would
-    # reconstruct the tree from the chunk_records kept at the producer.
-    # We attach it directly to the ledger object here to avoid API surface bloat.
-    if not hasattr(ledger, "_merkle_trees"):
-        ledger._merkle_trees: Dict[str, List[List[str]]] = {}  # type: ignore[attr-defined]
-    ledger._merkle_trees[content_id] = tree_levels  # type: ignore[attr-defined]
+    # Use the proper Ledger API (no duck-typing).
+    ledger.store_merkle_tree(content_id, tree_levels)
 
     # ------------------------------------------------------------------
-    # Build manifest (Step 7 utility — no consumer key here, just the list)
+    # Manifest: plaintext key-distribution list (one entry per chunk)
     # ------------------------------------------------------------------
     manifest = crypto_auth.build_manifest(chunk_records)
 
-    return manifest, chunk_records
+    # ------------------------------------------------------------------
+    # Step 5: Wrap manifest for consumer (ECIES hybrid encryption)
+    # ------------------------------------------------------------------
+    wrapped_manifest: Optional[bytes] = None
+    if consumer_public_key is not None:
+        manifest_bytes = json.dumps(manifest).encode("utf-8")
+        wrapped_manifest = crypto_auth.wrap_manifest_for_consumer(
+            manifest_bytes, consumer_public_key
+        )
+
+    return manifest, chunk_records, wrapped_manifest

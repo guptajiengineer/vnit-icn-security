@@ -7,6 +7,7 @@ from statistics import fmean, pstdev
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import config
+import crypto_auth
 from models import BaseTopology, ChunkRecord, ContentSpec
 from network import build_base_topology
 from network import expand_user_edge_nodes, get_user_nodes
@@ -103,9 +104,24 @@ def  evaluate_topology_scenarios(
                     # --------------------------------------------------------
                     ledger = None
                     chunk_records_map: Dict[str, List[ChunkRecord]] = {}
+                    # Step 5: consumer keypair and wrapped manifests.
+                    # Initialised here so they are always defined regardless
+                    # of auth_enabled, avoiding NameError in the lmm calls.
+                    consumer_private_key = None
+                    wrapped_manifests_map: Dict[str, bytes] = {}
 
                     if auth_enabled:
                         ledger = SimulatedLedger()
+
+                        # Step 5: Generate one X25519 consumer keypair per
+                        # experiment run.  All edge nodes share this keypair
+                        # in the simulation — it represents "the consumer side"
+                        # of the network.  In a real deployment each consumer
+                        # device would hold its own long-term keypair.
+                        consumer_private_key, consumer_public_key = (
+                            crypto_auth.generate_consumer_keypair()
+                        )
+
                         # Use num_users as the chunk_count proxy — it's the
                         # maximum number of paths that can be simultaneously
                         # selected (one per user), matching the runtime logic
@@ -115,13 +131,20 @@ def  evaluate_topology_scenarios(
                             producer_id = (
                                 active_publishers[0] if active_publishers else "producer_0"
                             )
-                            _manifest, chunk_records = publish_content(
+                            # publish_content now returns a 3-tuple:
+                            # (plaintext_manifest, chunk_records, wrapped_manifest)
+                            _manifest, chunk_records, wrapped_manifest = publish_content(
                                 content_spec=content_spec,
                                 chunk_count=chunk_count_for_publish,
                                 ledger=ledger,
                                 producer_id=producer_id,
+                                consumer_public_key=consumer_public_key,
                             )
                             chunk_records_map[content_spec.content_id] = chunk_records
+                            if wrapped_manifest is not None:
+                                wrapped_manifests_map[content_spec.content_id] = (
+                                    wrapped_manifest
+                                )
 
                     lmm1 = simulate_lmm1(
                         base,
@@ -137,6 +160,8 @@ def  evaluate_topology_scenarios(
                         auth_enabled=auth_enabled,
                         ledger=ledger,
                         chunk_records_map=chunk_records_map,
+                        consumer_private_key=consumer_private_key,
+                        wrapped_manifests_map=wrapped_manifests_map,
                     )
                     lmm2 = simulate_lmm2(
                         base,
@@ -152,6 +177,8 @@ def  evaluate_topology_scenarios(
                         auth_enabled=auth_enabled,
                         ledger=ledger,
                         chunk_records_map=chunk_records_map,
+                        consumer_private_key=consumer_private_key,
+                        wrapped_manifests_map=wrapped_manifests_map,
                     )
 
                     records.append(

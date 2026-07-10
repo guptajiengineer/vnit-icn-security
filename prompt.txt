@@ -1,0 +1,170 @@
+You are working as a Senior Research Software Engineer on an ongoing ICN (Information-Centric Networking) research project. Do not immediately write code.
+
+Your first task is to completely understand the existing project before making any modifications.
+
+=========================
+PHASE 1 — PROJECT ANALYSIS
+=========================
+
+Read the entire repository.
+
+Understand:
+
+1. Overall project architecture.
+2. Purpose of every Python module.
+3. Execution flow starting from run_experiments.py.
+4. Existing simulation workflow.
+5. How content is generated.
+6. How chunking currently works.
+7. How metrics are collected.
+8. How graphs are generated.
+9. Existing data structures.
+10. Existing classes and their responsibilities.
+11. Existing coding style.
+
+Do NOT modify anything yet.
+
+After analysis, provide:
+
+- Complete project architecture.
+- File-by-file explanation.
+- Call graph.
+- Which modules should remain untouched.
+- Which modules are extensible.
+- Best integration points for authentication and blockchain.
+- Whether current code follows good architecture or needs refactoring.
+
+=========================
+PHASE 2 — UNDERSTAND THE RESEARCH OBJECTIVE
+=========================
+
+The existing chunking implementation (Objective 1) is already completed.
+
+We are now implementing the remaining objectives.
+
+Current research methodology is:
+
+1. Producer Registration
+2. Secure Chunk Generation
+3. AES-256 Encryption
+4. SHA-256 Hash Generation
+5. ECC Digital Signature
+6. Blockchain Metadata Registration
+7. Consumer Authentication
+8. Smart Contract Authorization
+9. Individual Key Manifest Generation (Future)
+10. Consumer Verification
+11. Security Overhead Optimization
+
+Important:
+
+Only Steps 1–6 are currently in scope.
+
+Manifest generation will be implemented later.
+
+=========================
+CRYPTOGRAPHIC STACK
+=========================
+
+Do NOT change these design decisions.
+
+Encryption:
+AES-256
+
+Integrity:
+SHA-256
+
+Authentication:
+ECC (secp256r1)
+
+Future Optimization:
+Merkle Tree
+
+Blockchain:
+Hyperledger Fabric (currently preferred)
+
+=========================
+IMPORTANT ARCHITECTURAL REQUIREMENTS
+=========================
+
+The project should be modular.
+
+Create clean interfaces.
+
+The rest of the project must NOT directly depend on Hyperledger Fabric.
+
+Design a Blockchain Interface layer.
+
+Example:
+
+register_producer()
+
+register_chunk_metadata()
+
+lookup_chunk()
+
+verify_signature()
+
+authorize_consumer()
+
+Fabric implementation should later plug into these interfaces.
+
+=========================
+CURRENT IMPLEMENTATION TARGET
+=========================
+
+We need to implement only:
+
+Step 1
+Producer Registration
+
+Step 2
+Secure Chunk Generation
+
+Step 3
+AES-256 Encryption
+
+Step 4
+SHA-256 Hash Generation
+
+Step 5
+ECC Signature Generation
+
+Step 6
+Blockchain Metadata Registration Interface
+
+NOT actual Fabric integration yet.
+
+Instead:
+
+Create the interfaces, classes, module structure, and data flow required so Fabric can later replace the stub implementation.
+
+=========================
+DELIVERABLES
+=========================
+
+Before writing code, produce:
+
+1. Proposed architecture.
+2. Module dependency graph.
+3. New folder structure.
+4. New class diagram.
+5. Which existing files will change.
+6. Which new files are needed.
+7. How existing simulation integrates with the new authentication pipeline.
+8. Potential issues with current codebase.
+
+Wait for my approval before writing any code.
+
+=========================
+CODING RULES
+=========================
+
+- Preserve existing project style.
+- Minimize modifications to existing code.
+- Prefer extension over rewriting.
+- No placeholder implementations unless necessary.
+- Every class should have a single responsibility.
+- Every function should have clear inputs and outputs.
+- Follow production-quality Python design.
+- Think like a senior software architect, not just a code generator.
