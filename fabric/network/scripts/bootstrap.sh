@@ -38,7 +38,7 @@ echo "================================================================"
 # ── Helper: retry a command up to N times ─────────────────────────────────
 retry() {
   local n=$1; shift
-  local delay=$2; shift
+  local delay=$1; shift
   local rc=1
   for i in $(seq 1 "$n"); do
     if "$@"; then rc=0; break; fi
