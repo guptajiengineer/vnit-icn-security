@@ -13,7 +13,7 @@ RUN apt-get update \
 
 WORKDIR /build
 
-COPY requirements.txt .
+COPY app/requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 
@@ -42,7 +42,7 @@ COPY --from=builder /install /usr/local
 WORKDIR /app
 
 # Copy application source with correct ownership
-COPY --chown=icn:icn . .
+COPY --chown=icn:icn app/ .
 
 # Safety net: strip any credential files that leaked into the build context
 # despite .dockerignore.  Credentials are injected at runtime via volume mount.

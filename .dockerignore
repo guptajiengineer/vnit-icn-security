@@ -1,0 +1,44 @@
+# ── Fabric infrastructure — not needed inside the Python image ────────────────
+fabric/
+
+# ── Project-level docs — not needed inside the image ─────────────────────────
+docs/
+
+# ── Git and editor metadata ───────────────────────────────────────────────────
+.git/
+.gitignore
+.claude/
+.vscode/
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+
+# ── Top-level project files (not part of the app) ────────────────────────────
+README.md
+CLAUDE.md
+docker-compose.yml
+
+# ── Inside app/ — secrets and generated files to exclude ─────────────────────
+
+# Credentials — NEVER baked into the image; mounted at runtime via volume
+app/fabric/creds/
+
+# Experiment output — generated at runtime
+app/output/
+
+# Environment secrets — injected at runtime via env vars
+app/.env
+app/.env.*
+!app/.env.example
+
+# Python bytecode
+app/__pycache__/
+app/**/__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Documentation inside app (not needed in image)
+app/docs/
