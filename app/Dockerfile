@@ -4,6 +4,9 @@
 # python:3.11-slim/linux-amd64, so gcc is only a safety net.
 FROM python:3.11-slim AS builder
 
+ARG BUILD_DATE
+ARG GIT_COMMIT
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gcc \
     && rm -rf /var/lib/apt/lists/*
@@ -17,6 +20,13 @@ RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 # ── Stage 2: runtime ──────────────────────────────────────────────────────────
 # Minimal image: no build tools, no compiler, no creds.
 FROM python:3.11-slim
+
+# OCI standard image labels
+LABEL org.opencontainers.image.title="ICN Simulator" \
+      org.opencontainers.image.description="Blockchain-authenticated Information-Centric Networking simulator (LMM-1 / LMM-2)" \
+      org.opencontainers.image.authors="ICN Research Team" \
+      org.opencontainers.image.created="${BUILD_DATE}" \
+      org.opencontainers.image.revision="${GIT_COMMIT}"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -42,10 +52,13 @@ RUN rm -rf fabric/creds \
 
 USER icn
 
-# Credentials are mounted at /fabric/creds at runtime:
-#   docker run -v ./fabric/creds:/fabric/creds:ro ...
-# Environment variables FABRIC_TLS_CERT_PATH, FABRIC_CERT_PATH,
-# FABRIC_PRIVATE_KEY_PATH must point into that mount.
+# Credentials are mounted at /fabric/creds at runtime (from project root):
+#   docker compose --profile app up
+# or manually:
+#   docker run -v ./fabric/creds:/fabric/creds:ro --env-file app/.env icn-app
+#
+# FABRIC_TLS_CERT_PATH, FABRIC_CERT_PATH, FABRIC_PRIVATE_KEY_PATH must point
+# into that mount (see app/.env.example for the expected values).
 #
 # Inside docker-compose the peer is reachable by its service name:
 #   FABRIC_PEER_ENDPOINT=peer0.org1.example.com:7051
