@@ -65,6 +65,12 @@ docker compose down          # keeps crypto volumes
 docker compose down -v       # full reset — wipes ledger state, next up regenerates
 ```
 
+> **Multiple clones on the same machine:** `docker-compose.yml` uses
+> `name: icn` so all clones share the same Docker volumes. Run
+> `docker compose down -v` in each clone before starting another to avoid
+> "channel already exists" errors during `fabric-bootstrap`.
+
+
 ---
 
 ## Two Operating Modes
