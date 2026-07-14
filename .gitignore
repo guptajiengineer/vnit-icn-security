@@ -49,3 +49,14 @@ compose_run.log
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── Benchmark generated outputs (keep scripts + .gitkeep; ignore data/graphs) ─
+benchmark/data/raw/*/
+benchmark/data/raw/benchmark_config.json
+benchmark/data/raw/benchmark_timing.csv
+benchmark/data/processed/*.csv
+benchmark/graphs/png/*.png
+benchmark/graphs/pdf/*.pdf
+benchmark/graphs/svg/*.svg
+benchmark/reports/*.md
+benchmark/reports/*.txt
