@@ -1,0 +1,5 @@
+cryptography>=41.0
+grpcio>=1.60.0
+matplotlib>=3.7.0
+protobuf>=4.25.0
+python-dotenv>=1.0.0

@@ -1,3 +1,0 @@
-iteration,seed,num_publishers,num_users,lmm,avg_hops,avg_delay,avg_success_rate
-1,100,4,2,LMM-1,13.0,33.01110070873786,0.755214010323272
-1,100,4,2,LMM-2,13.0,31.794903003904533,0.7778312805184153

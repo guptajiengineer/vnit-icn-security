@@ -1,0 +1,32 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.so
+
+# Credentials — NEVER baked into the image; mounted at runtime
+fabric/creds/
+
+# Experiment output — generated at runtime, not needed in image
+output/
+
+# Git and editor metadata
+.git/
+.gitignore
+.vscode/
+.claude/
+
+# Logs
+*.log
+
+# Environment files — all config comes from runtime env vars in Docker
+.env
+.env.example
+.env.*
+
+# Documentation
+docs/
+
+# Archive directories
+archive/

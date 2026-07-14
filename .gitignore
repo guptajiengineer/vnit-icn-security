@@ -1,3 +1,51 @@
-.claude
-.vscode
-.github
+# ── Editor and tool metadata ──────────────────────────────────────────────────
+.claude/
+.vscode/
+.idea/
+.github/
+
+# ── Python compiled files ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── Experiment outputs (generated; commit selectively if needed) ──────────────
+app/output/
+
+# ── Fabric credentials (contain private keys — NEVER commit) ─────────────────
+fabric/creds/*.pem
+fabric/creds/*.crt
+app/fabric/creds/
+
+# ── Generated Fabric crypto material (populated by docker compose up) ─────────
+fabric/network/organizations/ordererOrganizations/
+fabric/network/organizations/peerOrganizations/
+
+# ── Generated channel artifacts ───────────────────────────────────────────────
+fabric/channel-artifacts/*.block
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+app/.env
+app/.env.*
+!app/.env.example
+
+# ── Logs ─────────────────────────────────────────────────────────────────────
+*.log
+compose_run.log
+
+# ── OS noise ─────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+desktop.ini

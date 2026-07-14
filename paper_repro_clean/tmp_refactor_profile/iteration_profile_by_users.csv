@@ -1,3 +1,0 @@
-iteration,num_users,lmm,samples,avg_hops,avg_hops_std,avg_delay,avg_delay_std,avg_success_rate,avg_success_rate_std
-1,2,LMM-1,1,12.1,0.0,26.368985769181656,0.0,0.8071296584053427,0.0
-1,2,LMM-2,1,12.1,0.0,26.368985769181656,0.0,0.8071296584053427,0.0

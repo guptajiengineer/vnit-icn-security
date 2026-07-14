@@ -1,2 +1,0 @@
-Total_Routers,Caching_Routers,Producers,Consumers,Total_Requests,Successful_Requests,Failed_Requests,Success_Rate_%,Cache_Hits,Cache_Misses,Cache_Hit_Ratio_%,Routers_With_Cache,Pre_Cached_Items,Content_From_Producer,Content_From_Cache,Total_Energy_Consumed_%,Avg_Battery_%,Avg_Latency_Sec
-6,2,3,1,10,10,0,100.0,0,0,0.0,0,0,10,0,0.06,99.99,2e-06

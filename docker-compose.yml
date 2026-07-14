@@ -1,0 +1,219 @@
+# docker-compose.yml — Self-contained Hyperledger Fabric network for the ICN project.
+#
+# Usage (Fabric stack only — default):
+#   docker compose up --build
+#
+# Usage (Fabric stack + Python app):
+#   docker compose --profile app up --build
+#
+# What happens automatically (in order):
+#   1. fabric-generate : cryptogen → crypto material + configtxgen → genesis block
+#                        + copies admin creds to ./fabric/creds/ for the Python client
+#   2. orderer         : starts after crypto is ready, exposes gRPC on 7050 + admin on 7053
+#   3. peer0.org1      : starts after orderer is healthy, exposes Fabric Gateway on 7051
+#   4. fabric-bootstrap: waits until peer is healthy, then:
+#                          - osnadmin channel join (creates mychannel on orderer)
+#                          - peer channel join
+#                          - peer lifecycle chaincode package/install/approve/commit icnledger
+#   5. icn-app [profile=app]: runs after bootstrap completes; executes run_experiments.py
+#
+# After the Fabric stack is up you can also run the app from the host:
+#   cd app && python run_experiments.py --auth-mode with
+
+name: icn
+
+# ── Persistent volumes for ledger state ───────────────────────────────────────
+volumes:
+  orderer-data:
+  peer0-org1-data:
+
+# ── Internal Docker network ────────────────────────────────────────────────────
+networks:
+  fabric:
+    name: icn_fabric   # must match CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE on the peer
+
+services:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Step 0: Generate crypto material + genesis block
+  # One-shot container — exits 0 when done, then orderer/peer can start.
+  # ────────────────────────────────────────────────────────────────────────────
+  fabric-generate:
+    image: hyperledger/fabric-tools:2.5
+    command: bash /scripts/generate.sh
+    volumes:
+      - ./fabric/network:/network
+      - ./fabric/network/scripts:/scripts
+      - ./fabric/channel-artifacts:/channel-artifacts
+      - ./fabric/creds:/creds
+    networks:
+      - fabric
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Step 1: Orderer (single-node Raft)
+  # ────────────────────────────────────────────────────────────────────────────
+  orderer.example.com:
+    container_name: orderer.example.com
+    image: hyperledger/fabric-orderer:2.5
+    depends_on:
+      fabric-generate:
+        condition: service_completed_successfully
+    environment:
+      - FABRIC_LOGGING_SPEC=INFO
+      - ORDERER_GENERAL_LISTENADDRESS=0.0.0.0
+      - ORDERER_GENERAL_LISTENPORT=7050
+      - ORDERER_GENERAL_LOCALMSPID=OrdererMSP
+      - ORDERER_GENERAL_LOCALMSPDIR=/var/hyperledger/orderer/msp
+      # TLS for peer-orderer communication
+      - ORDERER_GENERAL_TLS_ENABLED=true
+      - ORDERER_GENERAL_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      # Raft cluster TLS (self-referential for single-node)
+      - ORDERER_GENERAL_CLUSTER_CLIENTCERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_GENERAL_CLUSTER_CLIENTPRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_GENERAL_CLUSTER_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      # Channel participation API (Fabric 2.3+ — no system channel / genesis block)
+      - ORDERER_GENERAL_BOOTSTRAPMETHOD=none
+      - ORDERER_CHANNELPARTICIPATION_ENABLED=true
+      # Admin API (used by osnadmin in bootstrap.sh)
+      - ORDERER_ADMIN_TLS_ENABLED=true
+      - ORDERER_ADMIN_TLS_CERTIFICATE=/var/hyperledger/orderer/tls/server.crt
+      - ORDERER_ADMIN_TLS_PRIVATEKEY=/var/hyperledger/orderer/tls/server.key
+      - ORDERER_ADMIN_TLS_ROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_TLS_CLIENTROOTCAS=[/var/hyperledger/orderer/tls/ca.crt]
+      - ORDERER_ADMIN_LISTENADDRESS=0.0.0.0:7053
+      # Operations endpoint — used by healthcheck
+      - ORDERER_OPERATIONS_LISTENADDRESS=0.0.0.0:9443
+    volumes:
+      - ./fabric/network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp:/var/hyperledger/orderer/msp
+      - ./fabric/network/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/tls:/var/hyperledger/orderer/tls
+      - orderer-data:/var/hyperledger/production/orderer
+    ports:
+      - "7050:7050"   # gRPC (peers)
+      - "7053:7053"   # admin API (osnadmin)
+      - "9443:9443"   # operations (healthz)
+    healthcheck:
+      # curl/wget not in fabric-orderer:2.5 — use bash /dev/tcp to probe gRPC port
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/7050"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    networks:
+      - fabric
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Step 2: Peer (Org1, Gateway enabled for Python gRPC client)
+  # ────────────────────────────────────────────────────────────────────────────
+  peer0.org1.example.com:
+    container_name: peer0.org1.example.com
+    image: hyperledger/fabric-peer:2.5
+    depends_on:
+      orderer.example.com:
+        condition: service_healthy
+    environment:
+      - FABRIC_CFG_PATH=/etc/hyperledger/peercfg
+      - FABRIC_LOGGING_SPEC=INFO
+      # Docker socket for chaincode container management
+      - CORE_VM_ENDPOINT=unix:///host/var/run/docker.sock
+      # Chaincode containers join this network so they can reach the peer
+      - CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=icn_fabric
+      # TLS
+      - CORE_PEER_TLS_ENABLED=true
+      - CORE_PEER_TLS_CERT_FILE=/etc/hyperledger/fabric/tls/server.crt
+      - CORE_PEER_TLS_KEY_FILE=/etc/hyperledger/fabric/tls/server.key
+      - CORE_PEER_TLS_ROOTCERT_FILE=/etc/hyperledger/fabric/tls/ca.crt
+      # Identity
+      - CORE_PEER_ID=peer0.org1.example.com
+      - CORE_PEER_LOCALMSPID=Org1MSP
+      - CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/msp
+      # Networking
+      - CORE_PEER_ADDRESS=peer0.org1.example.com:7051
+      - CORE_PEER_LISTENADDRESS=0.0.0.0:7051
+      - CORE_PEER_CHAINCODEADDRESS=peer0.org1.example.com:7052
+      - CORE_PEER_CHAINCODELISTENADDRESS=0.0.0.0:7052
+      - CORE_PEER_GOSSIP_BOOTSTRAP=peer0.org1.example.com:7051
+      - CORE_PEER_GOSSIP_EXTERNALENDPOINT=peer0.org1.example.com:7051
+      # Operations endpoint — used by healthcheck
+      - CORE_OPERATIONS_LISTENADDRESS=0.0.0.0:9444
+      - CORE_CHAINCODE_EXECUTETIMEOUT=300s
+    volumes:
+      # Peer MSP + TLS material (generated by fabric-generate)
+      - ./fabric/network/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com:/etc/hyperledger/fabric
+      # Peer configuration (core.yaml with gateway.enabled=true)
+      - ./fabric/network/compose/peercfg:/etc/hyperledger/peercfg
+      # Persistent ledger storage
+      - peer0-org1-data:/var/hyperledger/production
+      # Docker socket — peer uses this to spin up chaincode containers
+      - /var/run/docker.sock:/host/var/run/docker.sock
+    ports:
+      - "7051:7051"   # Fabric Gateway gRPC (Python client connects here)
+      - "9444:9444"   # operations (healthz)
+    healthcheck:
+      # curl/wget not in fabric-peer:2.5 — use bash /dev/tcp to probe gRPC port
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/7051"]
+      interval: 5s
+      timeout: 3s
+      retries: 25
+      start_period: 20s
+    networks:
+      fabric:
+        aliases:
+          - peer0.org1.example.com
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Step 3: Bootstrap — channel creation + chaincode deployment
+  # One-shot container — exits 0 when icnledger is committed and verified.
+  # ────────────────────────────────────────────────────────────────────────────
+  fabric-bootstrap:
+    image: hyperledger/fabric-tools:2.5
+    depends_on:
+      peer0.org1.example.com:
+        condition: service_healthy
+    command: bash /scripts/bootstrap.sh
+    volumes:
+      - ./fabric/network:/network
+      - ./fabric/network/scripts:/scripts
+      - ./fabric/channel-artifacts:/channel-artifacts
+      - ./fabric/icn_ledger:/chaincode
+    networks:
+      - fabric
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # Step 4: Python ICN application (opt-in via --profile app)
+  # Runs after bootstrap completes; connects to the peer over the fabric network.
+  # Creds are mounted read-only from ./fabric/creds/ (written by fabric-generate).
+  # Results are written to ./app/output/ on the host.
+  # ────────────────────────────────────────────────────────────────────────────
+  icn-app:
+    profiles:
+      - app
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    image: icn-app
+    container_name: icn-app
+    depends_on:
+      fabric-bootstrap:
+        condition: service_completed_successfully
+    environment:
+      # Service name — resolves inside the icn_fabric Docker network
+      - FABRIC_PEER_ENDPOINT=peer0.org1.example.com:7051
+      - FABRIC_PEER_HOSTNAME_OVERRIDE=peer0.org1.example.com
+      - FABRIC_CHANNEL=mychannel
+      - FABRIC_CHAINCODE=icnledger
+      - FABRIC_MSP_ID=Org1MSP
+      # Credential paths inside the container (mounted from ./fabric/creds)
+      - FABRIC_TLS_CERT_PATH=/fabric/creds/tls-ca.crt
+      - FABRIC_CERT_PATH=/fabric/creds/admin-cert.pem
+      - FABRIC_PRIVATE_KEY_PATH=/fabric/creds/admin-key.pem
+      - LEDGER_BACKEND=fabric
+      - MPLBACKEND=Agg
+    volumes:
+      # Credentials written by fabric-generate — mounted read-only
+      - ./fabric/creds:/fabric/creds:ro
+      # Results written here are visible on the host under app/output/
+      - ./app/output:/app/output
+    networks:
+      - fabric

@@ -1,0 +1,198 @@
+# core.yaml — Peer configuration for the ICN self-contained network.
+# Adapted from fabric-samples/test-network/compose/docker/peercfg/core.yaml.
+# Critical runtime values (TLS paths, MSP, listen addresses) are supplied
+# via environment variables in docker-compose.yml and take precedence over
+# the defaults defined here.
+
+peer:
+    id: peer0.org1.example.com
+    networkId: icn
+
+    listenAddress: 0.0.0.0:7051
+    chaincodeListenAddress: 0.0.0.0:7052
+    chaincodeAddress: peer0.org1.example.com:7052
+    address: peer0.org1.example.com:7051
+    addressAutoDetect: false
+
+    # Fabric Gateway — used by the Python gRPC client (fabric_client/client.py)
+    gateway:
+        enabled: true
+        endorsementTimeout: 30s
+        dialTimeout: 2m
+
+    keepalive:
+        interval: 7200s
+        timeout: 20s
+        minInterval: 60s
+        client:
+            interval: 60s
+            timeout: 20s
+        deliveryClient:
+            interval: 60s
+            timeout: 20s
+
+    gossip:
+        bootstrap: peer0.org1.example.com:7051
+        useLeaderElection: false   # single peer — no election needed
+        orgLeader: true
+        membershipTrackerInterval: 5s
+        maxBlockCountToStore: 10
+        maxPropagationBurstLatency: 10ms
+        maxPropagationBurstSize: 10
+        propagateIterations: 1
+        propagatePeerNum: 3
+        pullInterval: 4s
+        pullPeerNum: 3
+        requestStateInfoInterval: 4s
+        publishStateInfoInterval: 4s
+        publishCertPeriod: 10s
+        skipBlockVerification: false
+        dialTimeout: 3s
+        connTimeout: 2s
+        recvBuffSize: 20
+        sendBuffSize: 200
+        digestWaitTime: 1s
+        requestWaitTime: 1500ms
+        responseWaitTime: 2s
+        aliveTimeInterval: 5s
+        aliveExpirationTimeout: 25s
+        reconnectInterval: 25s
+        maxConnectionAttempts: 120
+        msgExpirationFactor: 20
+        state:
+            enabled: false
+
+    tls:
+        enabled: true
+        clientAuthRequired: false
+        cert:
+            file: tls/server.crt
+        key:
+            file: tls/server.key
+        rootcert:
+            file: tls/ca.crt
+        clientRootCAs:
+            files:
+              - tls/ca.crt
+
+    authentication:
+        timewindow: 15m
+
+    fileSystemPath: /var/hyperledger/production
+
+    BCCSP:
+        Default: SW
+        SW:
+            Hash: SHA2
+            Security: 256
+            FileKeyStore:
+                KeyStore:
+
+    mspConfigPath: msp
+    localMspId: Org1MSP
+
+    client:
+        connTimeout: 3s
+
+    deliveryclient:
+        blockGossipEnabled: true
+        reconnectTotalTimeThreshold: 3600s
+        connTimeout: 3s
+        reConnectBackoffThreshold: 3600s
+
+    localMspType: bccsp
+
+    profile:
+        enabled: false
+        listenAddress: 0.0.0.0:6060
+
+    handlers:
+        authFilters:
+          - name: DefaultAuth
+          - name: ExpirationCheck
+        decorators:
+          - name: DefaultDecorator
+        endorsers:
+          escc:
+            name: DefaultEndorsement
+        validators:
+          vscc:
+            name: DefaultValidation
+
+    discovery:
+        enabled: true
+        authCacheEnabled: true
+        authCacheMaxSize: 1000
+        authCachePurgeRetentionRatio: 0.75
+        orgMembersAllowedAccess: false
+
+    limits:
+        concurrency:
+            endorserService: 2500
+            deliverService: 2500
+
+    maxRecvMsgSize: 104857600
+    maxSendMsgSize: 104857600
+
+vm:
+    # Overridden at runtime by CORE_VM_ENDPOINT env var in docker-compose.yml
+    endpoint: unix:///host/var/run/docker.sock
+    docker:
+        tls:
+            enabled: false
+        attachStdout: false
+        hostConfig:
+            # Overridden by CORE_VM_DOCKER_HOSTCONFIG_NETWORKMODE=icn_fabric
+            NetworkMode: icn_fabric
+            LogConfig:
+                Type: json-file
+                Config:
+                    max-size: "50m"
+                    max-file: "5"
+            Memory: 2147483648
+
+chaincode:
+    id:
+        path:
+        name:
+    builder: $(DOCKER_NS)/fabric-ccenv:$(TWO_DIGIT_VERSION)
+    pull: false
+    golang:
+        runtime: $(DOCKER_NS)/fabric-baseos:$(TWO_DIGIT_VERSION)
+        dynamicLink: false
+    externalBuilders:
+       - name: ccaas_builder
+         path: /opt/hyperledger/ccaas_builder
+         propagateEnvironment:
+           - CHAINCODE_AS_A_SERVICE_BUILDER_CONFIG
+    installTimeout: 300s
+    startuptimeout: 300s
+    executetimeout: 300s
+    mode: net
+    keepalive: 0
+    system:
+        _lifecycle: enable
+        cscc: enable
+        lscc: enable
+        qscc: enable
+    logging:
+      level: info
+      shim: warning
+      format: '%{color}%{time:2006-01-02 15:04:05.000 MST} [%{module}] %{shortfunc} -> %{level:.4s} %{id:03x}%{color:reset} %{message}'
+
+ledger:
+    state:
+        stateDatabase: goleveldb
+        totalQueryLimit: 100000
+    history:
+        enableHistoryDatabase: true
+    snapshots:
+        rootDir: /var/hyperledger/production/snapshots
+
+operations:
+    listenAddress: 0.0.0.0:9444
+    tls:
+        enabled: false
+
+metrics:
+    provider: disabled
