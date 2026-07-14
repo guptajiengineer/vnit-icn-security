@@ -1,0 +1,4 @@
+# Enforce Unix LF line endings for all shell scripts regardless of platform.
+# Without this, git core.autocrlf=true (Windows default) converts LF→CRLF
+# on checkout, causing Linux containers to fail with "\r: command not found".
+fabric/network/scripts/*.sh  text eol=lf
