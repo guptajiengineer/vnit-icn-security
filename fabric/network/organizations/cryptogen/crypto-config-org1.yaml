@@ -1,0 +1,14 @@
+# Org1 peer crypto configuration.
+# Identical to fabric-samples/test-network/organizations/cryptogen/crypto-config-org1.yaml.
+# One peer (peer0.org1.example.com) + one Admin user.
+
+PeerOrgs:
+  - Name: Org1
+    Domain: org1.example.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+      SANS:
+        - localhost
+    Users:
+      Count: 1
