@@ -1,0 +1,9 @@
+{
+  "timestamp": "2026-07-14T09:32:02.909021+00:00",
+  "iterations": 5,
+  "publisher_start": 4,
+  "publisher_end": 10,
+  "user_start": 2,
+  "user_end": 8,
+  "skip_auth": false
+}

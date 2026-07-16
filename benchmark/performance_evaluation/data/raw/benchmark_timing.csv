@@ -1,0 +1,5 @@
+mode_label,chunking_mode,auth_mode,wall_clock_seconds,iterations,rows_written,exit_code,status
+without_chunking__without_auth,without,without,11.594,1,32,0,ok
+with_chunking__without_auth,with,without,16.087,1,32,0,ok
+without_chunking__with_auth,without,with,191.618,1,32,0,ok
+with_chunking__with_auth,with,with,202.791,1,32,0,ok

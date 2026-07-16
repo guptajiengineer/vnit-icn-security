@@ -1,0 +1,9 @@
+chunking_mode,auth_mode,num_publishers,num_users,lmm,samples,avg_hops,avg_hops_std,avg_delay,avg_delay_std,avg_success_rate,avg_success_rate_std
+with_chunking,with_auth,10,2,LMM-1,1,10.0,0.0,10.050000000000004,0.0,0.6563770173476864,0.0
+with_chunking,with_auth,10,2,LMM-2,1,10.0,0.0,10.050000000000004,0.0,0.6563770173476864,0.0
+with_chunking,with_auth,10,4,LMM-1,1,10.0,0.0,10.050000000000004,0.0,0.6113434733601066,0.0
+with_chunking,with_auth,10,4,LMM-2,1,10.0,0.0,5.275000000000005,0.0,0.6563770173476864,0.0
+with_chunking,with_auth,10,6,LMM-1,1,10.0,0.0,10.050000000000004,0.0,0.5344568114836359,0.0
+with_chunking,with_auth,10,6,LMM-2,1,10.0,0.0,7.827777777777782,0.0,0.5957378175947099,0.0
+with_chunking,with_auth,10,8,LMM-1,1,10.0,0.0,10.050000000000004,0.0,0.4850935340175949,0.0
+with_chunking,with_auth,10,8,LMM-2,1,10.0,0.0,6.412500000000001,0.0,0.5974405690642347,0.0
