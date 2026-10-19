@@ -258,10 +258,3 @@ NetworkScenario
   -> central runtime controller that ties all of the above together
 ```
 
-## One subtle but important detail
-
-If you are documenting this for a report or viva, the most accurate wording is:
-
-> "`experiments.py` is the experiment orchestration module, but `run_experiments.py` is the executable entrypoint in the current codebase."
-
-That distinction matters because `experiments.py` defines the workflow but does not directly start it by itself.
