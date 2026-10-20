@@ -1,7 +1,7 @@
 # ICN — Blockchain-Authenticated Information-Centric Network
 
-A research simulator for evaluating **LMM-1 / LMM-2 adaptive routing** in
-Information-Centric Networks (ICN), with optional **Hyperledger Fabric** blockchain
+A research for evaluating **LMM-1 / LMM-2 adaptive routing** in
+Information-Centric Networks (ICN), with **Hyperledger Fabric** blockchain
 authentication of content producers and chunk integrity.
 
 ---
